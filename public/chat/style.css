@@ -1,0 +1,56 @@
+[v-cloak] {
+    display: none;
+}
+
+.row {
+    margin: 0;
+}
+
+.col-2,
+.col-10,
+.col-12 {
+    padding: 0;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 150px 1fr 150px;
+    grid-template-rows: 1fr 38px;
+    grid-template-areas: "chats chat user" "input input input";
+}
+
+.chats {
+    grid-area: chats;
+    border-right: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.chat {
+    grid-area: chat;
+    border-right: 1px solid rgba(0, 0, 0, 0.125);
+    overflow-y: auto;
+}
+
+.user {
+    grid-area: user;
+    border-left: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.input {
+    grid-area: input;
+    border-top: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.input-group input,
+.input-group .btn,
+.list-group-item:first-child,
+.list-group-item:last-child {
+    border-radius: 0;
+}
+
+button.btn.btn-primary.dropdown-toggle::after {
+    content: none;
+}
+
+.dropdown-toggle::after {
+    content: none;
+}
