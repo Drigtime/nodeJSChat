@@ -36,21 +36,27 @@ app.get("/chat", authCookie(true, "/auth"), (req, res) => {
     res.sendFile(__dirname + "/public/chat/chat.html");
 });
 
+const currentConnections = [];
+
 // Socket io
 io.on("connection", function(socket) {
     socket.broadcast.emit("get-user");
 
     socket.on("new-connection", user => {
-        console.log(`New user join the chat [${user.name}]`);
-        socket.broadcast.emit("new-connection", user);
+        if (user !== null) {
+            console.log(`New user join the chat [${user.name}]@[${user._id}]`);
+            currentConnections[socket.client.id] = user;
+            // socket.broadcast.emit("new-connection", user);
+        }
     });
 
-    socket.on("get-user", user => {
-        io.emit("new-connection", user);
-    });
+    // socket.on("get-user", user => {
+    //     io.emit("new-connection", user);
+    // });
 
     socket.on("disconnect", msg => {
-        console.log(`Disconnected [${msg.username}] ${msg.message}`);
+        // console.log(`Disconnected [${msg.username}] ${msg.message}`);
+        socket.leaveAll();
         io.emit("disconnected", msg);
     });
 
@@ -62,8 +68,25 @@ io.on("connection", function(socket) {
     socket.on("switch-chat", ({ oldChat, newChat }) => {
         if (oldChat) {
             socket.leave(oldChat._id);
+            io.in(oldChat._id).clients((error, clients) => {
+                console.log(clients);
+
+                io.in(oldChat._id).emit(
+                    "new-connection",
+                    clients.map(client => currentConnections[client])
+                );
+            });
         }
         socket.join(newChat._id);
+        io.in(newChat._id).clients((error, clients) => {
+            console.log(clients);
+
+            io.in(newChat._id).emit(
+                "new-connection",
+                clients.map(client => currentConnections[client])
+            );
+        });
+
         // console.log(socket.rooms);
     });
 });

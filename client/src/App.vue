@@ -1,17 +1,21 @@
 <template>
     <v-app>
-        <v-app-bar app color="primary" dark dense>
+        <v-progress-linear indeterminate color="cyan" v-if="loading"></v-progress-linear>
+        <v-app-bar app color="primary" dark dense v-else>
             <v-toolbar-title>
                 <router-link
                     to="/"
                     style="color: white; text-decoration: none;"
                 >
-                    Chat
+                    NodeJSChat
                 </router-link>
             </v-toolbar-title>
 
             <v-spacer></v-spacer>
 
+            <v-btn text to="/chat">
+                Chat
+            </v-btn>
             <div v-if="user">
                 <v-menu offset-y>
                     <template v-slot:activator="{ on }">
@@ -62,14 +66,20 @@ export default {
     components: {
         Login
     },
+    data: function() {
+        return {
+            loading: true
+        };
+    },
     computed: mapGetters(["user"]),
-    created() {
+    async created() {
         if (localStorage.token) {
             setAuthToken(localStorage.token);
         } else {
             setAuthToken();
         }
-        this.fetchUser();
+        await this.fetchUser();
+        this.loading = false;
     },
     methods: {
         ...mapActions(["fetchUser", "logoutUser"]),
