@@ -1,5 +1,5 @@
 {
-  "mongoURI": "mongodb://127.0.0.1:27017/?gssapiServiceName=mongodb",
+  "mongoURI": "mongodb+srv://drigtime:nM7BIKmwIa44q0Zq@cluster0-l683n.mongodb.net/chat?retryWrites=true&w=majority",
   "jwtSecret": "xn5#EmJxYfbm$xyRe5ybmvXE0ZTutdSF0*JUkWuG45*TClCWwpm6AUcT^6FB6LyWBYir3%sbvv!pE&BX#yYsv%$@9@9bDcFC!p#",
-  "defaultChat": "5e51b77bef1d554db4a0a32b"
+  "defaultChat": "5e7a67e7e0470653ac237e87"
 }

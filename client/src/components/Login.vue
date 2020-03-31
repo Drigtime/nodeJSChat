@@ -59,6 +59,7 @@
 <script>
 import { mapActions } from "vuex";
 import axios from "axios";
+import router from '../router'
 
 export default {
   data() {
@@ -98,11 +99,12 @@ export default {
             },
             config
           )
-          .then(res => {
+          .then(async res => {
             console.log(res);
 
             localStorage.setItem("token", res.data.token);
-            this.fetchUser();
+            await this.fetchUser();
+            router.push("/");
           });
       }
     }

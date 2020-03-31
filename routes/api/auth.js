@@ -19,7 +19,7 @@ router.get("/", auth, async (req, res) => {
             .select("-password")
             .populate({
                 path: "chats.chat",
-                select: "name"
+                select: "name owner"
             })
             .exec();
         res.json(user);

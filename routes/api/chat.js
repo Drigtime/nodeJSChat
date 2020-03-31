@@ -81,11 +81,17 @@ router.delete("/:chat_id", auth, async (req, res) => {
         const chat = await Chat.findById(req.params.chat_id);
 
         if (chat.owner._id == req.user.id) {
+            for (const user of chat.users) {
+                await User.findByIdAndUpdate(user.user, {
+                    $pull: { chats: { chat: req.params.chat_id } }
+                });
+            }
+
             await Chat.findByIdAndDelete(req.params.chat_id);
 
-            await User.findByIdAndUpdate(req.user.id, {
-                $pull: { chats: { chat: req.params.chat_id } }
-            });
+            // await User.findByIdAndUpdate(req.user.id, {
+            //     $pull: { chats: { chat: req.params.chat_id } }
+            // });
 
             return res.json({ msg: "Chat have been deleted successfully" });
         }
@@ -106,7 +112,7 @@ router.delete("/:chat_id", auth, async (req, res) => {
  */
 router.post(
     "/quit",
-    [auth, [check("chatId", "The id provided is not valid").isMongoId]],
+    [auth, [check("chatId", "The id provided is not valid").isMongoId()]],
     async (req, res) => {
         const errors = validationResult(req);
 
@@ -119,9 +125,13 @@ router.post(
         try {
             const { chatId } = req.body;
 
+            // console.log(`User whant to quit chat: ${chatId}`);
+
             const chat = await Chat.findById(chatId);
 
             if (chat.owner !== req.user.id) {
+                const user = await User.findById(req.user.id);
+
                 await chat.updateOne({ $pull: { users: { user } } });
                 await User.findOneAndUpdate(req.user.id, {
                     $pull: { chats: { chat } }
@@ -153,7 +163,7 @@ router.post(
         auth,
         [
             check("chatId", "The id provided is not valid").isMongoId(),
-            check("userId", "The id provided is not valid").isMongoId()
+            check("users", "The id provided is not valid").isArray()
         ]
     ],
     async (req, res) => {
@@ -166,18 +176,32 @@ router.post(
         }
 
         try {
-            const { chatId, userId } = req.body;
+            const { chatId, users } = req.body;
 
             const chat = await Chat.findById(chatId);
-            const user = await User.findById(userId);
+            const addedUsers = [];
 
-            console.log(chat.owner, req.user.id);
-            
-            if (chat.owner == req.user.id) {
-                await chat.updateOne({ $push: { users: { user } } });
-                await user.updateOne({ $push: { chats: { chat } } });
+            for (const userId of users) {
+                const user = await User.findById(userId);
 
-                return res.json(`${user.name} added to the chat ${chat.id}`)
+                console.log(chat.owner, req.user.id);
+
+                if (chat.owner == req.user.id) {
+                    await chat.updateOne({ $push: { users: { user } } });
+                    await user.updateOne({ $push: { chats: { chat } } });
+
+                    addedUsers.push(user.name);
+                }
+            }
+
+            console.log(
+                `${addedUsers.join(", ")} added to the chat ${chat.id}`
+            );
+
+            if (addedUsers.length > 0) {
+                return res.json(
+                    `${addedUsers.join(", ")} added to the chat ${chat.id}`
+                );
             }
 
             res.status(405).json({

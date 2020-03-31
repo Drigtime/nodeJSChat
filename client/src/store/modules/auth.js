@@ -18,7 +18,7 @@ const actions = {
     });
 
     commit("setUser", response.data);
-    router.push("/");
+    // router.push("/");
   },
   logoutUser({ commit }) {
     localStorage.removeItem("token");

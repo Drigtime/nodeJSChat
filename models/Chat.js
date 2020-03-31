@@ -14,10 +14,6 @@ const ChatSchema = new mongoose.Schema({
             user: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "user"
-            },
-            banned: {
-                type: Boolean,
-                default: false
             }
         }
     ],
@@ -29,6 +25,10 @@ const ChatSchema = new mongoose.Schema({
             }
         }
     ],
+    privateChat: {
+        type: Boolean,
+        default: false
+    },
     date: {
         type: Date,
         default: Date.now
