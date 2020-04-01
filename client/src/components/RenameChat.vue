@@ -1,24 +1,22 @@
 <template>
   <v-dialog v-model="dialog" max-width="450px">
     <template v-slot:activator="{ on }">
-      <v-btn color="primary" block dark v-on="on">
-        <v-icon>mdi-plus</v-icon>
-      </v-btn>
+      <v-list-item v-on="on">
+        <v-list-item-avatar>
+          <v-icon>mdi-pencil</v-icon>
+        </v-list-item-avatar>
+        <v-list-item-title>Renommer le chat</v-list-item-title>
+      </v-list-item>
     </template>
     <v-card>
       <v-card-title>
-        <span class="headline">Créer un chat</span>
+        <span class="headline">Renommer le chat</span>
       </v-card-title>
       <v-card-text>
         <v-container>
           <v-row>
             <v-col cols="12">
-              <v-text-field
-                v-model="chatName"
-                autofocus
-                label="Nom du chat"
-                required
-              ></v-text-field>
+              <v-text-field v-model="name" autofocus label="Nom du chat" required></v-text-field>
             </v-col>
           </v-row>
         </v-container>
@@ -26,7 +24,7 @@
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn color="blue darken-1" text @click="dialog = false">Fermer</v-btn>
-        <v-btn color="primary" dark @click="newChat">Créer</v-btn>
+        <v-btn color="primary" dark @click="renameChat">Renommer</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -41,32 +39,35 @@ import { mapActions } from "vuex";
 
 export default {
   props: {
-    socket: Object
+    socket: Object,
+    chatId: String,
+    chatName: String
   },
   data: () => ({
     dialog: false,
-    chatName: ""
+    name: ""
   }),
+  created() {
+    this.name = this.chatName;
+  },
   methods: {
     ...mapActions(["fetchUser"]),
-    newChat() {
+    renameChat() {
       axios
         .post(
-          "/api/chat/",
-          { name: this.chatName },
+          "/api/chat/rename",
+          { chatId: this.chatId, name: this.name },
           {
             contentType: "application/json"
           }
         )
         .then(() => {
           this.dialog = false;
-          this.fetchUser();
-          // socket.emit("create-chat", {
-          //   chatId: res.data._id
-          // });
+          //   this.fetchUser();
+          this.socket.emit("rename-chat", { chatId: this.chatId });
         });
 
-      this.chatName = "";
+      //   this.name = "";
     }
   }
 };

@@ -17,11 +17,15 @@ router.get("/:chat_id", auth, async (req, res) => {
             .populate({
                 path: "messages.message",
                 select: "text user",
-                populate: { path: "user", select: "name email avatar" }
+                populate: { path: "user", select: "name avatar" }
+            })
+            .populate({
+                path: "users.user",
+                select: "name avatar"
             })
             .exec();
 
-        if (chat.users.map(user => user.user).includes(req.user.id)) {
+        if (chat.users.map(user => user.user.id).includes(req.user.id)) {
             return res.json(chat);
         }
 
@@ -104,6 +108,54 @@ router.delete("/:chat_id", auth, async (req, res) => {
         res.status(500).send("Server error");
     }
 });
+
+/**
+ * @route  POST /rename
+ * @desc   Rename a chat by id
+ * @access Private
+ */
+router.post(
+    "/rename",
+    [
+        auth,
+        [
+            check("chatId", "The id provided is not valid").isMongoId(),
+            check("name", "Name is required")
+                .not()
+                .isEmpty()
+        ]
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                errors: errors.array()
+            });
+        }
+
+        try {
+            const { chatId, name } = req.body;
+
+            const chat = await Chat.findById(chatId);
+
+            if (chat.owner == req.user.id) {
+                await chat.updateOne({ $set: { name } });
+
+                return res.json(
+                    `Chat ${chat.id} renamed successfully to ${name}`
+                );
+            }
+
+            res.status(405).json({
+                msg: "Action unauthorized, only the owner can rename this chat"
+            });
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).send("Server error");
+        }
+    }
+);
 
 /**
  * @route  POST /quit
@@ -216,16 +268,16 @@ router.post(
 
 /**
  * @route  POST /user/ban
- * @desc   Ban user from chat
+ * @desc   Remove user from chat
  * @access Private
  */
 router.post(
-    "/user/ban",
+    "/user/remove",
     [
         auth,
         [
-            check("chatId", "The id provided is not valid").isMongoId,
-            check("userId", "The id provided is not valid").isMongoId
+            check("chatId", "The id provided is not valid").isMongoId(),
+            check("userId", "The id provided is not valid").isMongoId()
         ]
     ],
     async (req, res) => {
@@ -239,13 +291,27 @@ router.post(
 
         try {
             const { chatId, userId } = req.body;
+            console.log("userId", userId);
+            console.log("chatId", chatId);
 
             const chat = await Chat.findById(chatId);
 
-            if (chat.owner === req.user.id) {
+            if (chat.owner == req.user.id) {
+                await User.findOneAndUpdate(
+                    { _id: userId },
+                    {
+                        $pull: { chats: { chat: chatId } }
+                    }
+                );
                 await Chat.findOneAndUpdate(
-                    { _id: chatId, "users.user": userId },
-                    { $set: { "users.$.banned": true } }
+                    { _id: chatId },
+                    {
+                        $pull: { users: { user: userId } }
+                    }
+                );
+
+                return res.json(
+                    `Removed user from the chat ${chat.id} successfully`
                 );
             }
 
@@ -258,6 +324,51 @@ router.post(
         }
     }
 );
+
+/**
+ * @route  POST /user/ban
+ * @desc   Ban user from chat
+ * @access Private
+ */
+// router.post(
+//     "/user/ban",
+//     [
+//         auth,
+//         [
+//             check("chatId", "The id provided is not valid").isMongoId,
+//             check("userId", "The id provided is not valid").isMongoId
+//         ]
+//     ],
+//     async (req, res) => {
+//         const errors = validationResult(req);
+
+//         if (!errors.isEmpty()) {
+//             return res.status(400).json({
+//                 errors: errors.array()
+//             });
+//         }
+
+//         try {
+//             const { chatId, userId } = req.body;
+
+//             const chat = await Chat.findById(chatId);
+
+//             if (chat.owner === req.user.id) {
+//                 await Chat.findOneAndUpdate(
+//                     { _id: chatId, "users.user": userId },
+//                     { $set: { "users.$.banned": true } }
+//                 );
+//             }
+
+//             res.status(405).json({
+//                 msg: "Action unauthorized, user is not the owner of the chat"
+//             });
+//         } catch (err) {
+//             console.error(err.message);
+//             res.status(500).send("Server error");
+//         }
+//     }
+// );
 
 /**
 /**
@@ -265,44 +376,44 @@ router.post(
  * @desc   Unban user from chat
  * @access Private
  */
-router.post(
-    "/user/unban",
-    [
-        auth,
-        [
-            check("chatId", "The id provided is not valid").isMongoId,
-            check("userId", "The id provided is not valid").isMongoId
-        ]
-    ],
-    async (req, res) => {
-        const errors = validationResult(req);
+// router.post(
+//     "/user/unban",
+//     [
+//         auth,
+//         [
+//             check("chatId", "The id provided is not valid").isMongoId,
+//             check("userId", "The id provided is not valid").isMongoId
+//         ]
+//     ],
+//     async (req, res) => {
+//         const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                errors: errors.array()
-            });
-        }
+//         if (!errors.isEmpty()) {
+//             return res.status(400).json({
+//                 errors: errors.array()
+//             });
+//         }
 
-        try {
-            const { chatId, userId } = req.body;
+//         try {
+//             const { chatId, userId } = req.body;
 
-            const chat = await Chat.findById(chatId);
+//             const chat = await Chat.findById(chatId);
 
-            if (chat.owner === req.user.id) {
-                await Chat.findOneAndUpdate(
-                    { _id: chatId, "users.user": userId },
-                    { $set: { "users.$.banned": false } }
-                );
-            }
+//             if (chat.owner === req.user.id) {
+//                 await Chat.findOneAndUpdate(
+//                     { _id: chatId, "users.user": userId },
+//                     { $set: { "users.$.banned": false } }
+//                 );
+//             }
 
-            res.status(405).json({
-                msg: "Action unauthorized, user is not the owner of the chat"
-            });
-        } catch (err) {
-            console.error(err.message);
-            res.status(500).send("Server error");
-        }
-    }
-);
+//             res.status(405).json({
+//                 msg: "Action unauthorized, user is not the owner of the chat"
+//             });
+//         } catch (err) {
+//             console.error(err.message);
+//             res.status(500).send("Server error");
+//         }
+//     }
+// );
 
 module.exports = router;

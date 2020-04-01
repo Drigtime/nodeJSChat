@@ -14,8 +14,8 @@
           <v-row>
             <v-col cols="12">
               <v-select
-                v-model="selectedUsers"
                 v-if="chat !== null"
+                v-model="selectedUsers"
                 :items="getUsers"
                 item-text="name"
                 item-value="_id"
@@ -45,6 +45,26 @@ import { mapGetters } from "vuex";
 // const socket = io();
 
 export default {
+  props: {
+    users: {
+      type: Array,
+      default: function() {
+        return [];
+      }
+    },
+    chat: {
+      type: Object,
+      default: function() {
+        return {};
+      }
+    },
+    socket: {
+      type: Object,
+      default: function() {
+        return {};
+      }
+    }
+  },
   data: () => ({
     dialog: false,
     selectedUsers: []
@@ -54,11 +74,6 @@ export default {
     getUsers() {
       return this.users.filter(user => user._id !== this.chat.owner);
     }
-  },
-  props: {
-    users: Array,
-    chat: Object,
-    socket: Object
   },
   mounted() {},
   methods: {

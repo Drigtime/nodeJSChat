@@ -2,15 +2,14 @@
   <div class="d-flex" style="height: calc(100vh - 48px)">
     <div style="height: 100%">
       <v-navigation-drawer permanent width="200px">
-        <v-skeleton-loader v-if="user === null" height="94" type="list-item"></v-skeleton-loader>
-        <v-list dense nav style="overflow-y: auto;" v-else>
+        <v-skeleton-loader v-if="user === null" type="list-item"></v-skeleton-loader>
+        <v-list v-else dense nav style="overflow-y: auto;">
           <v-list-item
-            link
             v-for="(chat, index) in user.chats"
-            v-bind:key="index"
+            :key="index"
+            link
             @click="switchChat(chat.chat._id)"
           >
-          
             <v-list-item-content>
               <v-list-item-title>{{ chat.chat.name }}</v-list-item-title>
             </v-list-item-content>
@@ -23,12 +22,11 @@
                 </template>
                 <!-- Owner menu -->
                 <v-list v-if="chat.chat.owner == user._id">
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-pencil</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-title>Renommer le chat</v-list-item-title>
-                  </v-list-item>
+                  <rename-chat
+                    :chat-id="chat.chat._id"
+                    :chat-name="chat.chat.name"
+                    :socket="socket"
+                  ></rename-chat>
                   <v-list-item @click="deleteChat(chat.chat._id)">
                     <v-list-item-avatar>
                       <v-icon color="error">mdi-delete</v-icon>
@@ -60,9 +58,11 @@
     <!-- </v-col> -->
     <!-- <v-col style="overflow-y: auto; height: 100%" id="chatContent"> -->
     <v-card style="width: calc(100% - 200px);">
-      <v-skeleton-loader v-if="chat == null" height="94" type="list-item"></v-skeleton-loader>
-      <v-toolbar color="grey darken-4" dark dense v-else>
-        <v-toolbar-title>{{ chat.name }}</v-toolbar-title>
+      <v-toolbar color="grey darken-4" dark dense>
+        <v-toolbar-title>
+          <v-skeleton-loader v-if="loadingChat" width="300" type="heading"></v-skeleton-loader>
+          <span v-else>{{ chat.name }}</span>
+        </v-toolbar-title>
 
         <v-spacer></v-spacer>
 
@@ -81,32 +81,50 @@
           class="d-flex flex-column"
           :style="userDrawer ? 'width: calc(100% - 200px);' : 'width: 100%;'"
         >
-          <div style="overflow-x: hidden; height: 100%;" id="chatContent">
-            <v-skeleton-loader v-if="loadingChat" height="94" type="list-item"></v-skeleton-loader>
-            <v-list v-else>
-              <v-list-item v-for="(message, index) in messages" v-bind:key="index">
-                <v-list-item-content>
-                  <v-list-item-title class="message">[{{ message.user.name }}] {{ message.text }}</v-list-item-title>
-                </v-list-item-content>
-              </v-list-item>
+          <div id="chatContent" style="overflow-x: hidden; height: 100%;">
+            <v-list v-if="loadingChat">
+              <v-skeleton-loader type="list-item-avatar-two-line" v-for="i in 3" :key="i"></v-skeleton-loader>
+            </v-list>
+
+            <v-list v-else three-line>
+              <template v-for="(message, index) in messages">
+                <v-list-item :key="index">
+                  <v-list-item-avatar>
+                    <v-img :src="message.user.avatar"></v-img>
+                  </v-list-item-avatar>
+
+                  <v-list-item-content>
+                    <v-list-item-title v-html="message.user.name"></v-list-item-title>
+                    <v-list-item-subtitle v-html="message.text"></v-list-item-subtitle>
+                  </v-list-item-content>
+                </v-list-item>
+              </template>
             </v-list>
           </div>
           <v-text-field
+            v-model="newMessage"
             label="Outlined"
             placeholder="Message ..."
             hide-details
             solo
-            v-model="newMessage"
-            v-on:keyup.enter="send"
             mx-2
+            @keyup.enter="send"
           ></v-text-field>
         </div>
-        <v-navigation-drawer v-model="userDrawer" right permanent width="200px">
-          <v-skeleton-loader v-if="loading" height="94" type="list-item-avatar"></v-skeleton-loader>
-          <v-list dense nav v-else>
-            <v-list-item link v-for="(userOfChat, index) in users" v-bind:key="index">
+        <v-navigation-drawer
+          v-model="userDrawer"
+          :style="userDrawer ? '' : 'display: none'"
+          right
+          permanent
+          width="200px"
+        >
+          <v-list v-if="loadingChat">
+            <v-skeleton-loader type="list-item-avatar" v-for="i in 3" :key="i"></v-skeleton-loader>
+          </v-list>
+          <v-list v-else dense nav>
+            <v-list-item v-for="userOfChat in usersList" :key="userOfChat._id" link>
               <v-list-item-avatar>
-                <img v-bind:src="userOfChat.avatar" alt />
+                <img :src="userOfChat.avatar" alt />
               </v-list-item-avatar>
               <v-icon
                 :color="userOfChat.connected ? 'green' : 'grey'"
@@ -120,7 +138,7 @@
                 <v-list-item-title>{{ userOfChat.name }}</v-list-item-title>
               </v-list-item-content>
               <v-list-item-action class="d-flex flex-row align-center">
-                <v-menu offset-y v-if="userOfChat._id !== user._id">
+                <v-menu v-if="userOfChat._id !== user._id" offset-y>
                   <template v-slot:activator="{ on }">
                     <v-btn icon v-on="on">
                       <v-icon>mdi-dots-vertical</v-icon>
@@ -133,7 +151,10 @@
                       </v-list-item-avatar>
                       <v-list-item-title>Envoyer un message privée</v-list-item-title>
                     </v-list-item>
-                    <v-list-item v-if="chat.owner == user._id">
+                    <v-list-item
+                      v-if="chat.owner == user._id"
+                      @click="removeFromChat(userOfChat._id)"
+                    >
                       <v-list-item-avatar>
                         <v-icon color="error">mdi-account-off</v-icon>
                       </v-list-item-avatar>
@@ -157,118 +178,118 @@
 </template>
 
 <script>
+// import Vue from "vue";
 import axios from "axios";
 import io from "socket.io-client";
 import { mapGetters, mapActions } from "vuex";
 
 import InviteUser from "../components/InviteUser";
 import CreateChat from "../components/CreateChat";
+import RenameChat from "../components/RenameChat";
 
+// Vue.forceUpdate();
 const socket = io();
 
 export default {
   name: "Chat",
+  components: {
+    InviteUser,
+    CreateChat,
+    RenameChat
+  },
   data() {
     return {
       userDrawer: true,
       globalChatId: "5e7a67e7e0470653ac237e87",
       newMessage: null,
       error: false,
-      loading: true,
       loadingChat: false,
       chat: null,
       messages: [],
       users: [],
+      connectedUsers: [],
       allUsers: []
     };
   },
-  components: {
-    InviteUser,
-    CreateChat
-  },
   computed: {
     ...mapGetters(["user"]),
+    usersList() {
+      return this.chat.users.map(chatUser => {
+        const userIndex = this.connectedUsers.findIndex(
+          user => user._id === chatUser.user._id
+        );
+        if (userIndex !== -1) {
+          return { ...this.connectedUsers[userIndex], connected: true };
+        } else {
+          return {
+            ...chatUser.user,
+            connected: false
+          };
+        }
+      });
+    },
     socket: () => socket
   },
   mounted() {
     const $vm = this;
 
+    // Get all existing users for the invite select
     axios
       .get("/api/users/all")
       .then(res => {
-        $vm.allUsers = res.data;
+        this.allUsers = res.data;
       })
       .then(() => {
-        $vm.loading = false;
+        this.loading = false;
       });
 
-    if ($vm.user) {
-      $vm.users.push($vm.user);
-      socket.emit("new-connection", $vm.user);
-      // console.log($vm.user);
+    if (this.user) {
+      // this.users.push(this.user);
+      socket.emit("new-connection", this.user);
 
-      $vm.switchChat($vm.user.chats[0].chat._id);
+      this.switchChat(this.user.chats[0].chat._id);
     }
 
     socket.on("chat-message", message => {
-      $vm.messages.push(message);
+      this.messages.push(message);
     });
 
-    socket.on("chat-deleted", async () => {
-      console.log("DELETE");
+    socket.on("update-user-data", () => {
+      console.log("UPDATING USER DATA");
 
-      await $vm.fetchUser();
+      this.fetchUser();
     });
 
-    socket.on("added-user-to-chat", users => {
+    socket.on("added-user-to-chat", () => {
       console.log("ADDED USER TO CHAT");
 
-      axios.get(`/api/chat/${$vm.chat._id}`).then(async res => {
-        $vm.chat = res.data;
-
-        $vm.updateUsers(users);
-      });
+      $vm.updateUsers();
     });
 
-    socket.on("added-to-a-chat", async () => {
-      console.log("ADDED TO A CHAT");
+    socket.on("removed-from-a-chat", () => {
+      console.log("REMOVED FROM A CHAT");
 
-      await $vm.fetchUser();
+      this.switchChat(this.globalChatId);
+      this.fetchUser();
     });
 
-    // socket.on("user-quitted-chat", () => {
-    //   console.log("USER QUITTED THE CHAT");
+    socket.on("user-quitted-chat", () => {
+      console.log("USER QUITTED THE CHAT");
 
-    //   axios.get(`/api/chat/${$vm.chat._id}`).then(async res => {
-    //     $vm.chat = res.data;
+      $vm.updateUsers();
+    });
 
-    //     $vm.updateUsers(users);
-    //   });
-    // });
-
-    socket.on("quitted-chat", async () => {
+    socket.on("quitted-chat", () => {
       console.log("YOU QUITTED THE CHAT");
 
-      await $vm.fetchUser();
+      this.fetchUser();
     });
 
     socket.on("new-connection", users => {
-      // console.log(users);
+      console.log("NEW CONNECTION");
 
-      // if (users && !$vm.users.map(u => u._id).includes(user._id)) {
-      //     $vm.users.push(user);
-      // }
-      console.log($vm.chat);
-
-      // $vm.users = users;
-      if ($vm.chat) {
-        $vm.updateUsers(users);
-      }
+      this.connectedUsers = users;
     });
-
-    // socket.on("get-user", () => {
-    //     socket.emit("get-user", $vm.user);
-    // });
   },
   updated() {
     // if (!this.loadingChat) {
@@ -280,21 +301,6 @@ export default {
   },
   methods: {
     ...mapActions(["fetchUser"]),
-    updateUsers(users) {
-      this.users = this.chat.users.map(chatUser => {
-        const userIndex = users.findIndex(user => user._id === chatUser.user);
-        if (userIndex !== -1) {
-          return { ...users[userIndex], connected: true };
-        } else {
-          return {
-            ...this.allUsers[
-              this.allUsers.findIndex(user => user._id === chatUser.user)
-            ],
-            connected: false
-          };
-        }
-      });
-    },
     send() {
       const msg = this.newMessage;
       this.newMessage = null;
@@ -321,17 +327,41 @@ export default {
       // console.log(chatId);
 
       this.loadingChat = true;
+      this.loading = true;
 
       axios.get(`/api/chat/${chatId}`).then(res => {
         const oldChat = this.chat;
         this.chat = res.data;
+        this.users = res.data.users;
         this.messages = res.data.messages.map(data => data.message);
+
         this.loadingChat = false;
+        this.loading = false;
+
         socket.emit("switch-chat", {
           oldChat: oldChat,
           newChat: this.chat
         });
       });
+    },
+    removeFromChat(userId) {
+      axios
+        .post(
+          "/api/chat/user/remove",
+          {
+            chatId: this.chat._id,
+            userId
+          },
+          {
+            contentType: "application/json"
+          }
+        )
+        .then(() => {
+          socket.emit("remove-user-from-chat", {
+            chatId: this.chat._id,
+            userId
+          });
+        });
     },
     quitChat(chatId) {
       axios
@@ -344,11 +374,12 @@ export default {
             contentType: "application/json"
           }
         )
-        .then(
+        .then(() => {
           socket.emit("quit-chat", {
             chatId
-          })
-        );
+          });
+          this.switchChat(this.globalChatId);
+        });
     },
     deleteChat(chatId) {
       axios.delete(`/api/chat/${chatId}`).then(
@@ -356,16 +387,21 @@ export default {
           chatId
         })
       );
-      // .then(()=>{
-
-      // })
+    },
+    updateUsers() {
+      axios.get(`/api/chat/${this.chat._id}`).then(res => {
+        this.chat = res.data;
+        this.users = res.data.users;
+        this.messages = res.data.messages.map(data => data.message);
+      });
     }
   }
 };
 </script>
 
 <style>
-.message {
-  white-space: normal !important;
+.v-list--three-line .v-list-item .v-list-item__subtitle,
+.v-list-item--three-line .v-list-item__subtitle {
+  -webkit-line-clamp: unset;
 }
 </style>

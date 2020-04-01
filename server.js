@@ -42,58 +42,46 @@ const currentConnections = [];
 
 // Socket io
 io.on("connection", function(socket) {
-    // socket.broadcast.emit("get-user");
-
     socket.on("new-connection", user => {
         if (user !== null) {
             // console.log(`New user join the chat [${user.name}]@[${user._id}]`);
 
             console.log("currentConnections", currentConnections);
-            if (Object.keys(currentConnections).length > 0) {
-                const key = Object.keys(currentConnections).find(
-                    key => currentConnections[key]._id == user._id
-                );
-                console.log("key", key);
 
-                if (key === undefined)
-                    currentConnections[socket.client.id] = user;
-            } else {
-                currentConnections[socket.client.id] = user;
-            }
+            if (currentConnections[user._id] === undefined)
+                currentConnections[user._id] = {
+                    ...user,
+                    socketId: socket.client.id
+                };
 
-            // console.log(currentConnections);
-
-            // socket.broadcast.emit("new-connection", user);
+            io.emit(
+                "new-connection",
+                Object.keys(currentConnections).map(
+                    key => currentConnections[key]
+                )
+            );
         }
     });
 
-    // socket.on("get-user", user => {
-    //     io.emit("new-connection", user);
-    // });
-
     socket.on("disconnect", msg => {
-        // console.log(`Disconnected [${msg.username}] ${msg.message}`);
+        const clientId = Object.keys(currentConnections).find(
+            key => currentConnections[key].socketId == socket.client.id
+        );
+
+        delete currentConnections[clientId];
         socket.leaveAll();
-        delete currentConnections[socket.client.id];
-        
+
         io.emit("disconnected", msg);
     });
 
     socket.on("chat-message", ({ chat, message }) => {
-        // console.log(`[${message.user.name}] ${message.text}`);
         io.sockets.in(chat._id).emit("chat-message", message);
     });
 
     socket.on("add-user-to-chat", ({ users, chat }) => {
         for (const user of users) {
-            console.log("users", users);
-            console.log("currentConnections", currentConnections);
-            const key = Object.keys(currentConnections).find(
-                key => currentConnections[key]._id == user
-            );
-
-            console.log("key", key);
-            if (key) io.to(key).emit("added-to-a-chat");
+            console.log("user", user);
+            io.to(currentConnections[user].socketId).emit("update-user-data");
         }
 
         io.in(chat._id).clients((error, clients) => {
@@ -104,18 +92,21 @@ io.on("connection", function(socket) {
         });
     });
 
-    socket.on("quit-chat", async ({ chatId }) => {
-        // let users = await User.find({ "chats.chat": chatId });
-        // users = users.filter(user => user.id !== currentConnections[socket.client.id]._id).map(user => user.id);
+    socket.on("remove-user-from-chat", ({ chatId, userId }) => {
+        console.log("REMOVE USER FROM CHAT");
+        
 
-        // for (const user of users) {
-        //     const key = Object.keys(currentConnections).find(
-        //         key => currentConnections[key]._id == user
-        //     );
+        io.to(currentConnections[userId].socketId).emit("removed-from-a-chat");
 
-        //     if (key) io.to(key).emit("user-quitted-chat");
-        // }
+        io.in(chatId).clients((error, clients) => {
+            io.in(chatId).emit(
+                "user-quitted-chat",
+                clients.map(client => currentConnections[client])
+            );
+        });
+    });
 
+    socket.on("quit-chat", ({ chatId }) => {
         io.in(chatId).emit("user-quitted-chat");
 
         socket.emit("quitted-chat");
@@ -126,35 +117,42 @@ io.on("connection", function(socket) {
         users = users.map(user => user.id);
 
         for (const user of users) {
-            const key = Object.keys(currentConnections).find(
-                key => currentConnections[key]._id == user
-            );
-
-            if (key) io.to(key).emit("chat-deleted");
+            console.log("user", user);
+            io.to(currentConnections[user].socketId).emit("update-user-data");
         }
     });
+
+    socket.on("rename-chat", async ({ chatId })=>{
+        let users = await User.find({ "chats.chat": chatId });
+        users = users.map(user => user.id);
+
+        for (const user of users) {
+            console.log("user", user);
+            io.to(currentConnections[user].socketId).emit("update-user-data");
+        }
+    })
 
     socket.on("switch-chat", ({ oldChat, newChat }) => {
         if (oldChat) {
             socket.leave(oldChat._id);
-            io.in(oldChat._id).clients((error, clients) => {
-                // console.log(clients);
+            // io.in(oldChat._id).clients((error, clients) => {
+            //     console.log(clients);
 
-                io.in(oldChat._id).emit(
-                    "new-connection",
-                    clients.map(client => currentConnections[client])
-                );
-            });
+            //     io.in(oldChat._id).emit(
+            //         "new-connection",
+            //         clients.map(client => currentConnections[client])
+            //     );
+            // });
         }
         socket.join(newChat._id);
-        io.in(newChat._id).clients((error, clients) => {
-            // console.log(clients);
+        // io.in(newChat._id).clients((error, clients) => {
+        //     console.log(clients);
 
-            io.in(newChat._id).emit(
-                "new-connection",
-                clients.map(client => currentConnections[client])
-            );
-        });
+        //     io.in(newChat._id).emit(
+        //         "new-connection",
+        //         clients.map(client => currentConnections[client])
+        //     );
+        // });
 
         // console.log(socket.rooms);
     });

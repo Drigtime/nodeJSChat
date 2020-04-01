@@ -1,11 +1,13 @@
 <template>
   <v-app v-if="loading">
-      <v-progress-linear indeterminate color="cyan"></v-progress-linear>
+    <v-progress-linear indeterminate color="cyan"></v-progress-linear>
   </v-app>
   <v-app v-else>
     <v-app-bar app color="primary" dark dense>
       <v-toolbar-title>
-        <router-link to="/" style="color: white; text-decoration: none;">NodeJSChat</router-link>
+        <router-link to="/" style="color: white; text-decoration: none;"
+          >NodeJSChat</router-link
+        >
       </v-toolbar-title>
 
       <v-spacer></v-spacer>
