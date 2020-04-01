@@ -23,21 +23,6 @@ app.use("/api/auth", require("./routes/api/auth"));
 app.use("/api/chat", require("./routes/api/chat"));
 app.use("/api/message", require("./routes/api/message"));
 
-// Routes
-app.get("/", (req, res) => {
-    res.redirect("/chat");
-});
-// authCookie first parameter is to say that you need to be authenticated or not and the second parameter the fallback route
-app.get("/auth", authCookie(false, "/chat"), (req, res) => {
-    res.sendFile(__dirname + "/public/Authentification.html");
-});
-app.get("/register", authCookie(false, "/chat"), (req, res) => {
-    res.sendFile(__dirname + "/public/register.html");
-});
-app.get("/chat", authCookie(true, "/auth"), (req, res) => {
-    res.sendFile(__dirname + "/public/chat/chat.html");
-});
-
 const currentConnections = [];
 
 // Socket io
