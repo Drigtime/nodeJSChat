@@ -7,7 +7,8 @@
     "server": "nodemon --ignore './public/' server",
     "client": "npm run serve --prefix client",
     "start": "node server",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client"
   },
   "main": "index.js",
   "dependencies": {

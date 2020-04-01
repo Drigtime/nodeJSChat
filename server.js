@@ -3,6 +3,8 @@ const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 const cookieParser = require("cookie-parser");
+const path = require("path");
+
 const connectDB = require("./config/db");
 const authCookie = require("./middleware/authCookie");
 
@@ -14,10 +16,8 @@ connectDB();
 // Init Middleware
 app.use(cookieParser());
 app.use(express.json({ extended: false }));
-app.use(express.static(__dirname + "/public"));
 
 // Api Routes
-app.get("/api/", (req, res) => res.send("API Running"));
 app.use("/api/users", require("./routes/api/users"));
 app.use("/api/auth", require("./routes/api/auth"));
 app.use("/api/chat", require("./routes/api/chat"));
@@ -94,7 +94,6 @@ io.on("connection", function(socket) {
 
     socket.on("remove-user-from-chat", ({ chatId, userId }) => {
         console.log("REMOVE USER FROM CHAT");
-        
 
         io.to(currentConnections[userId].socketId).emit("removed-from-a-chat");
 
@@ -122,7 +121,7 @@ io.on("connection", function(socket) {
         }
     });
 
-    socket.on("rename-chat", async ({ chatId })=>{
+    socket.on("rename-chat", async ({ chatId }) => {
         let users = await User.find({ "chats.chat": chatId });
         users = users.map(user => user.id);
 
@@ -130,33 +129,25 @@ io.on("connection", function(socket) {
             console.log("user", user);
             io.to(currentConnections[user].socketId).emit("update-user-data");
         }
-    })
+    });
 
     socket.on("switch-chat", ({ oldChat, newChat }) => {
         if (oldChat) {
             socket.leave(oldChat._id);
-            // io.in(oldChat._id).clients((error, clients) => {
-            //     console.log(clients);
-
-            //     io.in(oldChat._id).emit(
-            //         "new-connection",
-            //         clients.map(client => currentConnections[client])
-            //     );
-            // });
         }
         socket.join(newChat._id);
-        // io.in(newChat._id).clients((error, clients) => {
-        //     console.log(clients);
-
-        //     io.in(newChat._id).emit(
-        //         "new-connection",
-        //         clients.map(client => currentConnections[client])
-        //     );
-        // });
-
-        // console.log(socket.rooms);
     });
 });
+
+// Serve static assets in pridction
+if (process.env.NODE_ENV === "production") {
+    // Set static folder
+    app.use(express.static("client/build"));
+
+    app.get("*", (req, res) => {
+        res.sendFile(path.resolve(__dirname, "client", "build", "index.html"));
+    });
+}
 
 const PORT = process.env.PORT || 5000;
 
