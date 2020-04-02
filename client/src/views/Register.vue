@@ -4,9 +4,7 @@
       <v-col cols="12" sm="8" md="4">
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
-            <v-toolbar-title>
-              Formulaire d'inscription
-            </v-toolbar-title>
+            <v-toolbar-title>Formulaire d'inscription</v-toolbar-title>
             <!-- <v-spacer /> -->
           </v-toolbar>
           <v-card-text>
@@ -51,13 +49,9 @@
             </v-form>
           </v-card-text>
           <v-card-actions>
-            <router-link to="/login">
-              Déjà inscrit ?
-            </router-link>
+            <router-link to="/login">Déjà inscrit ?</router-link>
             <v-spacer />
-            <v-btn color="primary" @click="register">
-              S'inscrire
-            </v-btn>
+            <v-btn color="primary" @click="register">S'inscrire</v-btn>
           </v-card-actions>
         </v-card>
       </v-col>
@@ -66,6 +60,8 @@
 </template>
 
 <script>
+import setAuthToken from "../utils/setAuthToken";
+import { mapActions } from "vuex";
 import axios from "axios";
 
 export default {
@@ -94,6 +90,7 @@ export default {
     };
   },
   methods: {
+    ...mapActions(["fetchUser"]),
     register() {
       if (this.$refs.registerForm.validate()) {
         const config = {
@@ -112,10 +109,11 @@ export default {
             },
             config
           )
-          .then(res => {
+          .then(async res => {
             localStorage.setItem("token", res.data.token);
-            this.fetchUser();
-            this.$router.push(this.$route.query.redirect || "/");
+            setAuthToken(localStorage.token);
+            await this.fetchUser();
+            this.$router.push({ path: "chat" });
           });
       }
     }

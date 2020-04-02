@@ -7,9 +7,7 @@
     :nudge-width="200"
   >
     <template v-slot:activator="{ on }">
-      <v-btn dark outlined v-on="on">
-        Login
-      </v-btn>
+      <v-btn dark outlined v-on="on">Login</v-btn>
     </template>
 
     <v-card>
@@ -38,9 +36,7 @@
       </v-card-text>
 
       <v-card-actions>
-        <router-link to="/register" @click.native="menu = false">
-          S'inscrire
-        </router-link>
+        <router-link to="/register" @click.native="menu = false">S'inscrire</router-link>
         <v-spacer />
         <v-btn
           color="primary"
@@ -48,18 +44,16 @@
             menu = false;
             login();
           "
-        >
-          Connexion
-        </v-btn>
+        >Connexion</v-btn>
       </v-card-actions>
     </v-card>
   </v-menu>
 </template>
 
 <script>
+import setAuthToken from "../utils/setAuthToken";
 import { mapActions } from "vuex";
 import axios from "axios";
-import router from "../router";
 
 export default {
   data() {
@@ -103,8 +97,9 @@ export default {
             console.log(res);
 
             localStorage.setItem("token", res.data.token);
+            setAuthToken(localStorage.token);
             await this.fetchUser();
-            router.push("/");
+            this.$router.push({ path: "chat" });
           });
       }
     }

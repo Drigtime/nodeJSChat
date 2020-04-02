@@ -244,7 +244,8 @@ export default {
       });
 
     if (this.user) {
-      // this.users.push(this.user);
+      console.log(this.user.chats[0].chat._id);
+
       socket.emit("new-connection", this.user);
 
       this.switchChat(this.user.chats[0].chat._id);
@@ -324,12 +325,13 @@ export default {
       window.location.replace("/auth");
     },
     switchChat(chatId) {
-      // console.log(chatId);
+      console.log("switchChat -> chatId", chatId);
 
       this.loadingChat = true;
       this.loading = true;
 
       axios.get(`/api/chat/${chatId}`).then(res => {
+        console.log("switchChat -> res", res);
         const oldChat = this.chat;
         this.chat = res.data;
         this.users = res.data.users;
