@@ -125,7 +125,7 @@ router.put(
                 await Message.findByIdAndUpdate(
                     message.id,
                     {
-                        $set: { text }
+                        $set: { text, edited: true }
                     },
                     { new: true }
                 );
@@ -150,9 +150,12 @@ router.put(
  */
 router.delete("/:message_id", auth, async (req, res) => {
     try {
-        const message = Message.findById(req.params.message_id);
+        const message = await Message.findById(req.params.message_id);
 
-        if (message.user.id == req.user.id) {
+        if (message.user == req.user.id) {
+            await Chat.findByIdAndUpdate(message.chat, {
+                $pull: { messages: { message: message.id } }
+            });
             await Message.findByIdAndRemove(message.id);
 
             return res.json({ msg: "Message deleted successfully" });

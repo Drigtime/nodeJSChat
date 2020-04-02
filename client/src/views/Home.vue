@@ -4,7 +4,7 @@
       <v-col cols="12" sm="8" md="4" class="text-center">
         <!-- <div class="home"> -->
         <img alt="Vue logo" src="../assets/logo.png" />
-        <p>Chat create with NodeJS & VueJS</p>
+        <p>Chat created with NodeJS & VueJS</p>
         <!-- <Login msg="Welcome to Your Vue.js App" /> -->
         <!-- </div> -->
       </v-col>

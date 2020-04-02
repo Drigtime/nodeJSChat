@@ -53,7 +53,9 @@ io.on("connection", function(socket) {
             key => currentConnections[key].socketId == socket.client.id
         );
 
+        console.log("currentConnections", currentConnections)
         delete currentConnections[clientId];
+        console.log("currentConnections", currentConnections)
         socket.leaveAll();
 
         io.emit("disconnected", msg);

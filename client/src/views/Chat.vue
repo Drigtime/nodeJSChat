@@ -88,15 +88,65 @@
 
             <v-list v-else three-line>
               <template v-for="(message, index) in messages">
-                <v-list-item :key="index">
+                <v-list-item link :key="index" class="message">
                   <v-list-item-avatar>
                     <v-img :src="message.user.avatar"></v-img>
                   </v-list-item-avatar>
 
                   <v-list-item-content>
                     <v-list-item-title v-html="message.user.name"></v-list-item-title>
-                    <v-list-item-subtitle v-html="message.text"></v-list-item-subtitle>
+                    <v-list-item-subtitle v-if="isBeingEdited != message._id" v-html="message.text"></v-list-item-subtitle>
+                    <v-text-field v-else dense v-model="editedMessage">
+                      <template v-slot:append>
+                        <v-tooltip bottom>
+                          <template v-slot:activator="{ on }">
+                            <v-btn
+                              icon
+                              color="error"
+                              @click="isBeingEdited = '', editedMessage = ''"
+                            >
+                              <v-icon v-on="on">mdi-close</v-icon>
+                            </v-btn>
+                          </template>
+                          Annuler
+                        </v-tooltip>
+                        <v-tooltip bottom>
+                          <template v-slot:activator="{ on }">
+                            <v-btn icon color="success" @click="editMessage">
+                              <v-icon v-on="on">mdi-check</v-icon>
+                            </v-btn>
+                          </template>
+                          Modifié
+                        </v-tooltip>
+                      </template>
+                    </v-text-field>
                   </v-list-item-content>
+
+                  <v-list-item-action v-if="message.user._id == user._id" class="my-auto">
+                    <v-menu offset-y left>
+                      <template v-slot:activator="{ on }">
+                        <v-btn icon v-on="on">
+                          <v-icon>mdi-dots-vertical</v-icon>
+                        </v-btn>
+                      </template>
+                      <v-list>
+                        <v-list-item
+                          @click="isBeingEdited = message._id, editedMessage = message.text"
+                        >
+                          <v-list-item-icon>
+                            <v-icon>mdi-pencil</v-icon>
+                          </v-list-item-icon>
+                          <v-list-item-title>Modifier le message</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="deleteMessage(message._id)">
+                          <v-list-item-icon>
+                            <v-icon class="red--text">mdi-delete</v-icon>
+                          </v-list-item-icon>
+                          <v-list-item-title class="red--text">Supprimer le message</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </v-list-item-action>
                 </v-list-item>
               </template>
             </v-list>
@@ -138,7 +188,7 @@
                 <v-list-item-title>{{ userOfChat.name }}</v-list-item-title>
               </v-list-item-content>
               <v-list-item-action class="d-flex flex-row align-center">
-                <v-menu v-if="userOfChat._id !== user._id" offset-y>
+                <v-menu v-if="userOfChat._id !== user._id" offset-y left>
                   <template v-slot:activator="{ on }">
                     <v-btn icon v-on="on">
                       <v-icon>mdi-dots-vertical</v-icon>
@@ -202,6 +252,8 @@ export default {
       userDrawer: true,
       globalChatId: "5e7a67e7e0470653ac237e87",
       newMessage: null,
+      editedMessage: null,
+      isBeingEdited: "",
       error: false,
       loadingChat: false,
       chat: null,
@@ -320,6 +372,31 @@ export default {
           });
         });
     },
+    editMessage() {
+      axios
+        .put(
+          `/api/message/${this.isBeingEdited}`,
+          { text: this.editedMessage },
+          {
+            contentType: "application/json"
+          }
+        )
+        .then(res => {
+          console.log("editMessage -> res", res);
+
+          this.editedMessage = "";
+          this.isBeingEdited = "";
+          // socket.emit("chat-message", {
+          //   chat: this.chat,
+          //   message: res.data
+          // });
+        });
+    },
+    deleteMessage(msgId) {
+      axios.delete(`/api/message/${msgId}`).then(res => {
+        console.log("deleteMessage -> res", res);
+      });
+    },
     disconnect() {
       document.cookie = "token=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
       window.location.replace("/auth");
@@ -402,6 +479,22 @@ export default {
 </script>
 
 <style>
+.message > .v-list-item__action {
+  display: none;
+}
+
+.message {
+  cursor: default;
+}
+
+.message:hover > .v-list-item__action {
+  display: block;
+}
+
+/* .message:hover {
+  background-color: #0000000a;
+} */
+
 .v-list--three-line .v-list-item .v-list-item__subtitle,
 .v-list-item--three-line .v-list-item__subtitle {
   -webkit-line-clamp: unset;
