@@ -16,8 +16,11 @@ router.get("/:chat_id", auth, async (req, res) => {
         const chat = await Chat.findById(req.params.chat_id)
             .populate({
                 path: "messages.message",
-                select: "text user",
-                populate: { path: "user", select: "name avatar" }
+                select: "text user chat",
+                populate: [
+                    { path: "user", select: "name avatar" },
+                    { path: "chat" }
+                ],
             })
             .populate({
                 path: "users.user",

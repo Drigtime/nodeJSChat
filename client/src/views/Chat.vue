@@ -14,7 +14,7 @@
               <v-list-item-title>{{ chat.chat.name }}</v-list-item-title>
             </v-list-item-content>
             <v-list-item-action>
-              <v-menu offset-y>
+              <v-menu>
                 <template v-slot:activator="{ on }">
                   <v-btn icon v-on="on">
                     <v-icon>mdi-dots-horizontal</v-icon>
@@ -122,8 +122,11 @@
                     </v-text-field>
                   </v-list-item-content>
 
-                  <v-list-item-action v-if="message.user._id == user._id" class="my-auto">
-                    <v-menu offset-y left>
+                  <v-list-item-action
+                    v-if="message.user._id == user._id && isBeingEdited != message._id"
+                    class="my-auto"
+                  >
+                    <v-menu left>
                       <template v-slot:activator="{ on }">
                         <v-btn icon v-on="on">
                           <v-icon>mdi-dots-vertical</v-icon>
@@ -188,7 +191,7 @@
                 <v-list-item-title>{{ userOfChat.name }}</v-list-item-title>
               </v-list-item-content>
               <v-list-item-action class="d-flex flex-row align-center">
-                <v-menu v-if="userOfChat._id !== user._id" offset-y left>
+                <v-menu v-if="userOfChat._id !== user._id" left>
                   <template v-slot:activator="{ on }">
                     <v-btn icon v-on="on">
                       <v-icon>mdi-dots-vertical</v-icon>
@@ -296,8 +299,6 @@ export default {
       });
 
     if (this.user) {
-      console.log(this.user.chats[0].chat._id);
-
       socket.emit("new-connection", this.user);
 
       this.switchChat(this.user.chats[0].chat._id);
@@ -307,40 +308,40 @@ export default {
       this.messages.push(message);
     });
 
-    socket.on("update-user-data", () => {
-      console.log("UPDATING USER DATA");
+    socket.on("edited-message", message => {
+      const msgIndex = this.messages.findIndex(msg => msg._id == message._id);
 
+      this.messages[msgIndex].text = message.text;
+    });
+
+    socket.on("deleted-message", message => {
+      const msgIndex = this.messages.findIndex(msg => msg._id == message._id);
+
+      this.messages.splice(msgIndex, 1);
+    });
+
+    socket.on("update-user-data", () => {
       this.fetchUser();
     });
 
     socket.on("added-user-to-chat", () => {
-      console.log("ADDED USER TO CHAT");
-
       $vm.updateUsers();
     });
 
     socket.on("removed-from-a-chat", () => {
-      console.log("REMOVED FROM A CHAT");
-
       this.switchChat(this.globalChatId);
       this.fetchUser();
     });
 
     socket.on("user-quitted-chat", () => {
-      console.log("USER QUITTED THE CHAT");
-
       $vm.updateUsers();
     });
 
     socket.on("quitted-chat", () => {
-      console.log("YOU QUITTED THE CHAT");
-
       this.fetchUser();
     });
 
     socket.on("new-connection", users => {
-      console.log("NEW CONNECTION");
-
       this.connectedUsers = users;
     });
   },
@@ -373,6 +374,8 @@ export default {
         });
     },
     editMessage() {
+      const message = this.messages.find(msg => msg._id == this.isBeingEdited);
+
       axios
         .put(
           `/api/message/${this.isBeingEdited}`,
@@ -382,19 +385,19 @@ export default {
           }
         )
         .then(res => {
-          console.log("editMessage -> res", res);
-
           this.editedMessage = "";
           this.isBeingEdited = "";
-          // socket.emit("chat-message", {
-          //   chat: this.chat,
-          //   message: res.data
-          // });
+          socket.emit("edited-message", {
+            chat: message.chat,
+            message: res.data
+          });
         });
     },
     deleteMessage(msgId) {
-      axios.delete(`/api/message/${msgId}`).then(res => {
-        console.log("deleteMessage -> res", res);
+      const message = this.messages.find(msg => msg._id == msgId);
+
+      axios.delete(`/api/message/${message._id}`).then(() => {
+        socket.emit("deleted-message", { chat: message.chat, message });
       });
     },
     disconnect() {
@@ -402,13 +405,10 @@ export default {
       window.location.replace("/auth");
     },
     switchChat(chatId) {
-      console.log("switchChat -> chatId", chatId);
-
       this.loadingChat = true;
       this.loading = true;
 
       axios.get(`/api/chat/${chatId}`).then(res => {
-        console.log("switchChat -> res", res);
         const oldChat = this.chat;
         this.chat = res.data;
         this.users = res.data.users;

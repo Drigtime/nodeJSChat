@@ -119,10 +119,10 @@ router.put(
         const { text } = req.body;
 
         try {
-            const message = await Message.findById(req.params.message_id);
+            let message = await Message.findById(req.params.message_id);
 
             if (message.user == req.user.id) {
-                await Message.findByIdAndUpdate(
+                message = await Message.findByIdAndUpdate(
                     message.id,
                     {
                         $set: { text, edited: true }

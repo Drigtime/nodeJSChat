@@ -53,9 +53,9 @@ io.on("connection", function(socket) {
             key => currentConnections[key].socketId == socket.client.id
         );
 
-        console.log("currentConnections", currentConnections)
+        console.log("currentConnections", currentConnections);
         delete currentConnections[clientId];
-        console.log("currentConnections", currentConnections)
+        console.log("currentConnections", currentConnections);
         socket.leaveAll();
 
         io.emit("disconnected", msg);
@@ -63,6 +63,16 @@ io.on("connection", function(socket) {
 
     socket.on("chat-message", ({ chat, message }) => {
         io.sockets.in(chat._id).emit("chat-message", message);
+    });
+
+    socket.on("edited-message", ({ chat, message }) => {
+        console.log("edit chat", chat);
+        io.sockets.in(chat._id).emit("edited-message", message);
+    });
+
+    socket.on("deleted-message", ({ chat, message }) => {
+        console.log("delete chat", chat);
+        io.sockets.in(chat._id).emit("deleted-message", message);
     });
 
     socket.on("add-user-to-chat", ({ users, chat }) => {
