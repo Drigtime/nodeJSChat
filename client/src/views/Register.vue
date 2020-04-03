@@ -56,6 +56,12 @@
         </v-card>
       </v-col>
     </v-row>
+    <v-snackbar v-model="snackbar" top>
+      {{ snackbarText }}
+      <v-btn color="pink" text @click="snackbar = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -67,6 +73,7 @@ import axios from "axios";
 export default {
   data() {
     return {
+      snackbar: false,
       valid: false,
       username: "",
       email: "",
@@ -114,6 +121,11 @@ export default {
             setAuthToken(localStorage.token);
             await this.fetchUser();
             this.$router.push({ path: "chat" });
+          })
+          .catch((err) => {
+            console.log("register -> err.response.data", err.response.data)
+            this.snackbarText = err.response.data.errors[0].msg
+            this.snackbar = true;
           });
       }
     }

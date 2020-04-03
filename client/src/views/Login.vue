@@ -39,6 +39,12 @@
         </v-card>
       </v-col>
     </v-row>
+    <v-snackbar v-model="snackbar" top>
+      Les identifiants ne sonts pas correct
+      <v-btn color="pink" text @click="snackbar = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -50,6 +56,7 @@ import axios from "axios";
 export default {
   data() {
     return {
+      snackbar: false,
       valid: false,
       email: "",
       emailRules: [
@@ -91,6 +98,9 @@ export default {
             setAuthToken(localStorage.token);
             await this.fetchUser();
             this.$router.push({ path: "chat" });
+          })
+          .catch(() => {
+            this.snackbar = true;
           });
       }
     }
