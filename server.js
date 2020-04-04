@@ -19,9 +19,18 @@ app.use(express.json({ extended: false }));
 
 // Api Routes
 app.use("/api/users", require("./routes/api/users"));
+app.use("/api/profile", require("./routes/api/profile"));
 app.use("/api/auth", require("./routes/api/auth"));
 app.use("/api/chat", require("./routes/api/chat"));
 app.use("/api/message", require("./routes/api/message"));
+
+app.get("/avatar/:file_name", (req, res) => {
+    console.log(req.params.file_name);
+    
+    res.sendFile(
+        path.join(__dirname, `./public/uploads/${req.params.file_name}`)
+    );
+});
 
 const currentConnections = [];
 

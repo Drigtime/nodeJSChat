@@ -1,0 +1,60 @@
+<template>
+  <v-card>
+    <v-toolbar color="primary" dark>
+      <v-toolbar-title>Editer le profile</v-toolbar-title>
+    </v-toolbar>
+    <v-card-text>
+      <v-form ref="form" v-model="valid" lazy-validation>
+        <v-text-field ref="nameField" name="pseudo" label="Pseudo" :value="user.name"></v-text-field>
+        <v-btn color="primary" block @click="submit">Valider</v-btn>
+      </v-form>
+    </v-card-text>
+    <v-snackbar v-model="snackbar" top color="success">
+      Pseudo modifié
+      <v-btn dark text @click="snackbar = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-snackbar>
+  </v-card>
+</template>
+
+<script>
+import axios from "axios";
+
+export default {
+  name: "Profile",
+  props: {
+    user: {
+      type: Object,
+      default: null
+    }
+  },
+  data() {
+    return {
+      snackbar: false,
+      valid: true
+    };
+  },
+  methods: {
+    submit() {
+      if (this.$refs.form.validate()) {          
+        axios
+          .post(
+            "/api/profile/edit/name",
+            {
+              name: this.$refs.nameField.lazyValue
+            },
+            {
+              contentType: "application/json"
+            }
+          )
+          .then(() => {
+            this.snackbar = true;
+          });
+      }
+    }
+  }
+};
+</script>
+
+<style></style>

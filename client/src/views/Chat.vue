@@ -90,7 +90,9 @@
               <template v-for="(message, index) in messages">
                 <v-list-item link :key="index" class="message">
                   <v-list-item-avatar>
-                    <v-img :src="message.user.avatar"></v-img>
+                    <v-img
+                      :src="message.user.avatar[0] == '/' ? message.user.avatar  : `/avatar/${message.user.avatar}`"
+                    ></v-img>
                   </v-list-item-avatar>
 
                   <v-list-item-content>
@@ -176,17 +178,23 @@
           </v-list>
           <v-list v-else dense nav>
             <v-list-item v-for="userOfChat in usersList" :key="userOfChat._id" link>
-              <v-list-item-avatar>
-                <img :src="userOfChat.avatar" alt />
+              <v-list-item-avatar tile>
+                <v-badge
+                  overlap
+                  bordered
+                  bottom
+                  :color="userOfChat.connected ? 'green' : 'grey'"
+                  dot
+                  offset-x="10"
+                  offset-y="10"
+                >
+                  <v-avatar size="40">
+                    <v-img
+                      :src="userOfChat.avatar[0] == '/' ? userOfChat.avatar  : `/avatar/${userOfChat.avatar}`"
+                    ></v-img>
+                  </v-avatar>
+                </v-badge>
               </v-list-item-avatar>
-              <v-icon
-                :color="userOfChat.connected ? 'green' : 'grey'"
-                style="
-                        position: absolute;
-                        margin-left: 25px;
-                        margin-top: 10px;
-                    "
-              >mdi-circle-medium</v-icon>
               <v-list-item-content>
                 <v-list-item-title>{{ userOfChat.name }}</v-list-item-title>
               </v-list-item-content>
@@ -274,12 +282,9 @@ export default {
           user => user._id === chatUser.user._id
         );
         if (userIndex !== -1) {
-          return { ...this.connectedUsers[userIndex], connected: true };
+          return { ...chatUser.user, connected: true };
         } else {
-          return {
-            ...chatUser.user,
-            connected: false
-          };
+          return { ...chatUser.user, connected: false };
         }
       });
     },
@@ -405,6 +410,8 @@ export default {
       window.location.replace("/auth");
     },
     switchChat(chatId) {
+      console.log(this.chat);
+
       this.loadingChat = true;
       this.loading = true;
 
