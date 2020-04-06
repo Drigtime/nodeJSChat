@@ -1,72 +1,107 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const auth = require("../../middleware/auth");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const config = require("config");
 const { check, validationResult } = require("express-validator");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
+const GridFsStorage = require("multer-gridfs-storage");
 
 const User = require("../../models/User");
+const db = config.get("mongoURI");
 
-const storage = multer.diskStorage({
-    destination: "./public/uploads/",
-    filename: function(req, file, cb) {
-        cb(null, "IMAGE-" + Date.now() + path.extname(file.originalname));
-    }
+const storage = new GridFsStorage({
+    url: db,
+    file: (req, file) => {
+        return new Promise((resolve, reject) => {
+            crypto.randomBytes(16, (err, buf) => {
+                if (err) {
+                    return reject(err);
+                }
+                const filename =
+                    buf.toString("hex") + path.extname(file.originalname);
+                const fileInfo = {
+                    filename: filename,
+                    bucketName: "uploads",
+                };
+                resolve(fileInfo);
+            });
+        });
+    },
 });
 
 const upload = multer({
-    storage: storage,
-    limits: { fileSize: 2000000 }
-}).single("avatar");
+    storage,
+    limits: { fileSize: 2000000 },
+});
 
 /**
  * @route  POST api/upload/avatar
  * @desc   upload avatar
  * @access Public
  */
-router.post("/upload/avatar", auth, (req, res) => {
-    try {
-        upload(req, res, async err => {
+router.post(
+    "/upload/avatar",
+    [auth, upload.single("avatar")],
+    async (req, res) => {
+        try {
             console.log("req", req.file);
             /*Now do where ever you want to do*/
             const user = await User.findById(req.user.id);
+            const gfs = new mongoose.mongo.GridFSBucket(
+                mongoose.connection.db,
+                {
+                    bucketName: "uploads",
+                }
+            );
 
-            if (fs.existsSync(`public\\uploads\\${user.avatar}`)) {
-                fs.unlinkSync(`public\\uploads\\${user.avatar}`);
-            }
+            console.log("test1");
 
-            await User.findByIdAndUpdate(req.user.id, {
-                $set: { avatar: req.file.filename }
-            });
+            await gfs.find(
+                {
+                    filename: user.avatar,
+                },
+                (err, file) => {
+                    console.log("err", err);
+                    console.log("file", file);
+                    // if (file) {
+                    //     gfs.delete(new mongoose.Types.ObjectId(file._id));
+                    // }
 
-            if (!err) return res.sendStatus(200).end();
-        });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send("Server error");
+                    // await User.findByIdAndUpdate(req.user.id, {
+                    //     $set: { avatar: req.file.filename },
+                    // });
+
+                    // if (!err) return res.sendStatus(200).end();
+                }
+            );
+            console.log(
+                gfs.find({
+                    filename: user.avatar,
+                })
+            );
+
+            // if (!err) return res.sendStatus(200).end();
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).send("Server error");
+        }
     }
-});
+);
 
 router.post(
     "/edit/name",
-    [
-        auth,
-        [
-            check("name", "Un pseudo est nécessaire")
-                .not()
-                .isEmpty()
-        ]
-    ],
+    [auth, [check("name", "Un pseudo est nécessaire").not().isEmpty()]],
     async (req, res) => {
         try {
             const { name } = req.body;
 
             await User.findByIdAndUpdate(req.user.id, {
-                $set: { name }
+                $set: { name },
             });
 
             res.sendStatus(200).end();
@@ -89,16 +124,16 @@ router.post(
                 "newPassword",
                 "Please enter a password with 6 or more characters"
             ).isLength({
-                min: 6
-            })
-        ]
+                min: 6,
+            }),
+        ],
     ],
     async (req, res) => {
         const errors = validationResult(req);
 
         if (!errors.isEmpty()) {
             return res.status(400).json({
-                errors: errors.array()
+                errors: errors.array(),
             });
         }
 
@@ -115,14 +150,14 @@ router.post(
                 const newPass = await bcrypt.hash(newPassword, salt);
 
                 await User.findByIdAndUpdate(req.user.id, {
-                    $set: { password: newPass }
+                    $set: { password: newPass },
                 });
 
                 return res.sendStatus(200).end();
             }
 
             res.status(400).json({
-                msg: "Le mot de passe courant n'est pas correct"
+                msg: "Le mot de passe courant n'est pas correct",
             });
         } catch (err) {
             console.error(err.message);

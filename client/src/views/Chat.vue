@@ -86,9 +86,9 @@
               <v-skeleton-loader type="list-item-avatar-two-line" v-for="i in 3" :key="i"></v-skeleton-loader>
             </v-list>
 
-            <v-list v-else three-line>
+            <v-list v-else two-line subheader>
               <template v-for="(message, index) in messages">
-                <v-list-item link :key="index" class="message">
+                <v-list-item :key="index" class="message">
                   <v-list-item-avatar>
                     <v-img
                       :src="message.user.avatar[0] == '/' ? message.user.avatar  : `/avatar/${message.user.avatar}`"
@@ -97,7 +97,9 @@
 
                   <v-list-item-content>
                     <v-list-item-title v-html="message.user.name"></v-list-item-title>
-                    <v-list-item-subtitle v-if="isBeingEdited != message._id" v-html="message.text"></v-list-item-subtitle>
+                    <v-list-item-subtitle v-if="isBeingEdited != message._id">
+                      <span class="text--primary">{{ message.text }}</span>
+                    </v-list-item-subtitle>
                     <v-text-field v-else dense v-model="editedMessage">
                       <template v-slot:append>
                         <v-tooltip bottom>
@@ -164,7 +166,57 @@
             solo
             mx-2
             @keyup.enter="send"
-          ></v-text-field>
+          >
+            <template v-slot:append>
+              <v-menu offset-y top left :close-on-content-click="false">
+                <template v-slot:activator="{ on: menu }">
+                  <v-tooltip top>
+                    <template v-slot:activator="{ on: tooltip }">
+                      <v-btn icon color="primary" dark v-on="{ ...tooltip, ...menu }">
+                        <v-icon>mdi-emoticon</v-icon>
+                      </v-btn>
+                    </template>
+                    <span>Emoji</span>
+                  </v-tooltip>
+                </template>
+                <v-card height="348">
+                  <v-tabs show-arrows fixed-tabs v-model="emojiTab" style="max-width: 273px;">
+                    <v-tab
+                      v-for="(tab, i) in emojisCategories"
+                      :key="i"
+                      style="min-width: unset;"
+                    >{{ emojis[tab][0].emoji }}</v-tab>
+                  </v-tabs>
+                  <v-tabs-items
+                    v-model="emojiTab"
+                    style="max-width: 273px; max-height: 300px; overflow-y: scroll;"
+                  >
+                    <v-tab-item
+                      :transition="false"
+                      :reverse-transition="false"
+                      v-for="(tab, i) in emojisCategories"
+                      :key="i"
+                    >
+                      <button
+                        class="btnEmoji"
+                        v-for="(emoji, index) in emojis[tab]"
+                        :key="index"
+                        @click="addEmojiToMessage(emoji.emoji)"
+                      >{{ emoji.emoji }}</button>
+                    </v-tab-item>
+                  </v-tabs-items>
+                </v-card>
+              </v-menu>
+              <v-tooltip top>
+                <template v-slot:activator="{ on: tooltip }">
+                  <v-btn icon color="primary" dark v-on="tooltip" @click="send">
+                    <v-icon>mdi-send</v-icon>
+                  </v-btn>
+                </template>
+                <span>Envoyer</span>
+              </v-tooltip>
+            </template>
+          </v-text-field>
         </div>
         <v-navigation-drawer
           v-model="userDrawer"
@@ -239,16 +291,15 @@
 </template>
 
 <script>
-// import Vue from "vue";
 import axios from "axios";
 import io from "socket.io-client";
 import { mapGetters, mapActions } from "vuex";
+import emojiJSON from "../assets/emoji.json";
 
 import InviteUser from "../components/InviteUser";
 import CreateChat from "../components/CreateChat";
 import RenameChat from "../components/RenameChat";
 
-// Vue.forceUpdate();
 const socket = io();
 
 export default {
@@ -260,9 +311,12 @@ export default {
   },
   data() {
     return {
+      emojiTab: null,
+      emojisCategories: Object.keys(emojiJSON),
+      emojis: emojiJSON,
       userDrawer: true,
       globalChatId: "5e7a67e7e0470653ac237e87",
-      newMessage: null,
+      newMessage: "",
       editedMessage: null,
       isBeingEdited: "",
       error: false,
@@ -360,9 +414,12 @@ export default {
   },
   methods: {
     ...mapActions(["fetchUser"]),
+    addEmojiToMessage(emoji) {
+      this.newMessage = this.newMessage + emoji;
+    },
     send() {
       const msg = this.newMessage;
-      this.newMessage = null;
+      this.newMessage = "";
       axios
         .post(
           `/api/message/${this.chat._id}`,
@@ -498,12 +555,36 @@ export default {
   display: block;
 }
 
-/* .message:hover {
+.message:hover {
   background-color: #0000000a;
+}
+
+/* .v-list--two-line .v-list-item .v-list-item__subtitle,
+.v-list-item--two-line .v-list-item__subtitle {
+  -webkit-line-clamp: unset;
 } */
 
-.v-list--three-line .v-list-item .v-list-item__subtitle,
-.v-list-item--three-line .v-list-item__subtitle {
-  -webkit-line-clamp: unset;
+.v-list--two-line .v-list-item .v-list-item__subtitle,
+.v-list-item--two-line .v-list-item__subtitle {
+  white-space: unset;
+}
+
+.v-list-item__title,
+.v-list-item__subtitle {
+  overflow: unset;
+}
+
+.btnEmoji {
+  width: 32px;
+  height: 32px;
+  outline: none;
+}
+
+.btnEmoji:hover {
+  background-color: #00000010;
+}
+
+.btnEmoji:active {
+  background-color: #0000001f;
 }
 </style>

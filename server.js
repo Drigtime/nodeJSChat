@@ -4,14 +4,14 @@ const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 const cookieParser = require("cookie-parser");
 const path = require("path");
+const gravatar = require("gravatar");
 
 const connectDB = require("./config/db");
-const authCookie = require("./middleware/authCookie");
 
 const User = require("./models/User");
 
 // Connect Database
-connectDB();
+connectDB().then();
 
 // Init Middleware
 app.use(cookieParser());
