@@ -7,7 +7,6 @@ const config = require("config");
 const { check, validationResult } = require("express-validator");
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
 const crypto = require("crypto");
 const GridFsStorage = require("multer-gridfs-storage");
 
@@ -49,9 +48,8 @@ router.post(
     [auth, upload.single("avatar")],
     async (req, res) => {
         try {
-            console.log("req", req.file);
-            /*Now do where ever you want to do*/
             const user = await User.findById(req.user.id);
+
             const gfs = new mongoose.mongo.GridFSBucket(
                 mongoose.connection.db,
                 {
@@ -59,39 +57,54 @@ router.post(
                 }
             );
 
-            console.log("test1");
-
-            await gfs.find(
-                {
-                    filename: user.avatar,
-                },
-                (err, file) => {
-                    console.log("err", err);
-                    console.log("file", file);
-                    // if (file) {
-                    //     gfs.delete(new mongoose.Types.ObjectId(file._id));
-                    // }
-
-                    // await User.findByIdAndUpdate(req.user.id, {
-                    //     $set: { avatar: req.file.filename },
-                    // });
-
-                    // if (!err) return res.sendStatus(200).end();
+            gfs.find({
+                filename: user.avatar,
+            }).toArray((err, files) => {
+                if (files && files.length > 0) {
+                    gfs.delete(new mongoose.Types.ObjectId(files[0]._id));
                 }
-            );
-            console.log(
-                gfs.find({
-                    filename: user.avatar,
-                })
-            );
+            });
 
-            // if (!err) return res.sendStatus(200).end();
+            await User.findByIdAndUpdate(req.user.id, {
+                $set: { avatar: req.file.filename },
+            });
+
+            return res.sendStatus(200).end();
         } catch (err) {
             console.error(err.message);
             res.status(500).send("Server error");
         }
     }
 );
+
+/**
+ * @route  GET api/avatar
+ * @desc   Get avatar
+ * @access Public
+ */
+router.get("/avatar/:filename", (req, res) => {
+    console.log("res", res);
+    console.log("req", req);
+    try {
+        const gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+            bucketName: "uploads",
+        });
+
+        gfs.find({
+            filename: req.params.filename,
+        }).toArray((err, files) => {
+            if (!files || files.length === 0) {
+                return res.status(404).json({
+                    err: "no files exist",
+                });
+            }
+            gfs.openDownloadStreamByName(req.params.filename).pipe(res);
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server error");
+    }
+});
 
 router.post(
     "/edit/name",

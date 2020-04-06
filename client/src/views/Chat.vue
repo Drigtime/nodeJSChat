@@ -91,8 +91,12 @@
                 <v-list-item :key="index" class="message">
                   <v-list-item-avatar>
                     <v-img
-                      :src="message.user.avatar[0] == '/' ? message.user.avatar  : `/avatar/${message.user.avatar}`"
-                    ></v-img>
+                      :src="message.user.avatar[0] == '/' ? message.user.avatar  : `/api/profile/avatar/${message.user.avatar}`"
+                    >
+                      <template v-slot:placeholder>
+                        <v-skeleton-loader type="avatar"></v-skeleton-loader>
+                      </template>
+                    </v-img>
                   </v-list-item-avatar>
 
                   <v-list-item-content>
@@ -242,8 +246,12 @@
                 >
                   <v-avatar size="40">
                     <v-img
-                      :src="userOfChat.avatar[0] == '/' ? userOfChat.avatar  : `/avatar/${userOfChat.avatar}`"
-                    ></v-img>
+                      :src="userOfChat.avatar[0] == '/' ? userOfChat.avatar  : `/api/profile/avatar/${userOfChat.avatar}`"
+                    >
+                      <template v-slot:placeholder>
+                        <v-skeleton-loader type="avatar"></v-skeleton-loader>
+                      </template>
+                    </v-img>
                   </v-avatar>
                 </v-badge>
               </v-list-item-avatar>

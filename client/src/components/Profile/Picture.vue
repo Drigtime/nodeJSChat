@@ -16,7 +16,7 @@
         ></v-file-input>
         <template v-if="image != null">
           <div class="text-center" style="overflow-x: hidden;">
-            <img :src="image.target.result" alt="Image de profile" height="200" />
+            <img :src="image.target.result" alt="Image de profile" style="max-height: 200px;" />
           </div>
           <v-btn color="primary" block @click="submit">Valider</v-btn>
         </template>
@@ -56,6 +56,61 @@ export default {
         const reader = new FileReader();
 
         reader.onload = res => {
+          const image = new Image();
+          image.src = event.target.result;
+
+          image.onload = img => {
+            let maxWidth = 50,
+              maxHeight = 50,
+              imageWidth = image.width,
+              imageHeight = image.height;
+
+            if (imageWidth > imageHeight) {
+              if (imageWidth > maxWidth) {
+                imageWidth *= maxHeight / imageHeight;
+                imageHeight = maxHeight;
+              }
+            } else if (imageHeight > imageWidth) {
+              if (imageHeight > maxHeight) {
+                imageHeight *= maxWidth / imageWidth;
+                imageWidth = maxWidth;
+              }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = imageWidth;
+            canvas.height = imageHeight;
+            image.width = imageWidth;
+            image.height = imageHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img.target, 0, 0, imageWidth, imageHeight);
+
+            // Convert the resize image to a new file to post it.
+            this.file = (function(dataURL) {
+              const BASE64_MARKER = ";base64,";
+              if (dataURL.indexOf(BASE64_MARKER) == -1) {
+                const parts = dataURL.split(",");
+                const contentType = parts[0].split(":")[1];
+                const raw = parts[1];
+
+                return new Blob([raw], { type: contentType });
+              }
+
+              const parts = dataURL.split(BASE64_MARKER);
+              const contentType = parts[0].split(":")[1];
+              const raw = window.atob(parts[1]);
+              const rawLength = raw.length;
+
+              const uInt8Array = new Uint8Array(rawLength);
+
+              for (let i = 0; i < rawLength; ++i) {
+                uInt8Array[i] = raw.charCodeAt(i);
+              }
+
+              return new Blob([uInt8Array], { type: contentType });
+            })(canvas.toDataURL(file.type));
+          };
+
           this.image = res;
         };
 
@@ -75,9 +130,6 @@ export default {
             "content-type": "multipart/form-data"
           }
         };
-
-        console.log("submit -> this.file", this.file);
-        console.log("submit -> formData", formData);
 
         axios.post("/api/profile/upload/avatar", formData, config).then(() => {
           this.snackbar = true;

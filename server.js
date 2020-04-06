@@ -4,14 +4,13 @@ const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 const cookieParser = require("cookie-parser");
 const path = require("path");
-const gravatar = require("gravatar");
 
 const connectDB = require("./config/db");
 
 const User = require("./models/User");
 
 // Connect Database
-connectDB().then();
+connectDB();
 
 // Init Middleware
 app.use(cookieParser());
@@ -23,14 +22,6 @@ app.use("/api/profile", require("./routes/api/profile"));
 app.use("/api/auth", require("./routes/api/auth"));
 app.use("/api/chat", require("./routes/api/chat"));
 app.use("/api/message", require("./routes/api/message"));
-
-app.get("/avatar/:file_name", (req, res) => {
-    console.log(req.params.file_name);
-    
-    res.sendFile(
-        path.join(__dirname, `./public/uploads/${req.params.file_name}`)
-    );
-});
 
 const currentConnections = [];
 
