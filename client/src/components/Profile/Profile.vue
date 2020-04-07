@@ -20,24 +20,21 @@
 
 <script>
 import axios from "axios";
+import { mapGetters, mapActions } from "vuex";
 
 export default {
   name: "Profile",
-  props: {
-    user: {
-      type: Object,
-      default: null
-    }
-  },
   data() {
     return {
       snackbar: false,
       valid: true
     };
   },
+  computed: mapGetters(["user"]),
   methods: {
+    ...mapActions(["fetchUser"]),
     submit() {
-      if (this.$refs.form.validate()) {          
+      if (this.$refs.form.validate()) {
         axios
           .post(
             "/api/profile/edit/name",
@@ -50,6 +47,7 @@ export default {
           )
           .then(() => {
             this.snackbar = true;
+            this.fetchUser();
           });
       }
     }

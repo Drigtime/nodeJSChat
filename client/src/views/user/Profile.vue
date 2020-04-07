@@ -9,7 +9,7 @@
                 <edit-picture></edit-picture>
               </v-col>
               <v-col cols="12">
-                <edit-profile :user="user"></edit-profile>
+                <edit-profile></edit-profile>
               </v-col>
             </v-row>
           </v-col>
@@ -23,7 +23,6 @@
 </template>
 
 <script>
-import { mapGetters } from "vuex";
 import Password from "../../components/Profile/Password";
 import Profile from "../../components/Profile/Profile";
 import Picture from "../../components/Profile/Picture";
@@ -37,8 +36,7 @@ export default {
     "edit-password": Password,
     "edit-profile": Profile,
     "edit-picture": Picture
-  },
-  computed: mapGetters(["user"])
+  }
 };
 </script>
 

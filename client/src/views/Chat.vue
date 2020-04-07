@@ -89,7 +89,7 @@
             <v-list v-else two-line subheader>
               <template v-for="(message, index) in messages">
                 <v-list-item :key="index" class="message">
-                  <v-list-item-avatar> 
+                  <v-list-item-avatar>
                     <v-img
                       :src="message.user.avatar ? `/api/profile/avatar/${message.user.avatar}` : message.user.gravatar"
                     >
@@ -102,7 +102,7 @@
                   <v-list-item-content>
                     <v-list-item-title v-html="message.user.name"></v-list-item-title>
                     <v-list-item-subtitle v-if="isBeingEdited != message._id">
-                      <span class="text--primary">{{ message.text }}</span>
+                      <div class="text--primary message-wrap">{{ message.text }}</div>
                     </v-list-item-subtitle>
                     <v-text-field v-else dense v-model="editedMessage">
                       <template v-slot:append>
@@ -162,14 +162,14 @@
               </template>
             </v-list>
           </div>
-          <v-text-field
+          <v-textarea
+            auto-grow
+            rows="1"
             v-model="newMessage"
-            label="Outlined"
             placeholder="Message ..."
             hide-details
             solo
-            mx-2
-            @keyup.enter="send"
+            @keydown="handleMessageTextField"
           >
             <template v-slot:append>
               <v-menu offset-y top left :close-on-content-click="false">
@@ -220,7 +220,7 @@
                 <span>Envoyer</span>
               </v-tooltip>
             </template>
-          </v-text-field>
+          </v-textarea>
         </div>
         <v-navigation-drawer
           v-model="userDrawer"
@@ -287,7 +287,7 @@
             </v-list-item>
           </v-list>
 
-          <template v-slot:append>
+          <template v-if="chat.owner == user._id" v-slot:append>
             <div class="pa-2">
               <invite-user :users="allUsers" :chat="chat" :socket="socket"></invite-user>
             </div>
@@ -422,11 +422,19 @@ export default {
   },
   methods: {
     ...mapActions(["fetchUser"]),
+    handleMessageTextField(event) {
+      if (event.keyCode == 13 && !event.shiftKey) {
+        event.preventDefault();
+        if (this.newMessage.replace(/\n/g, "").length > 0) {
+          this.send();
+        }
+      }
+    },
     addEmojiToMessage(emoji) {
       this.newMessage = this.newMessage + emoji;
     },
     send() {
-      const msg = this.newMessage;
+      const msg = this.newMessage.match(/^[\s\S]*?([\w\d\S][\s\S]*)/)[1];
       this.newMessage = "";
       axios
         .post(
@@ -565,6 +573,14 @@ export default {
 
 .message:hover {
   background-color: #0000000a;
+}
+
+.message-wrap {
+  white-space: pre-wrap;
+}
+
+.v-textarea.v-text-field--solo .v-input__append-inner {
+  margin-top: 8px!important;
 }
 
 /* .v-list--two-line .v-list-item .v-list-item__subtitle,

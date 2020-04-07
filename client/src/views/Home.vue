@@ -5,6 +5,11 @@
         <!-- <div class="home"> -->
         <img alt="Vue logo" src="../assets/logo.png" />
         <p>Chat created with NodeJS & VueJS</p>
+        <v-divider class="py-3"></v-divider>
+        <p>Source code available on my github</p>
+        <v-btn large icon color="black" href="https://github.com/Drigtime/nodeJSChat">
+          <v-icon>mdi-github-circle</v-icon>
+        </v-btn>
         <!-- <Login msg="Welcome to Your Vue.js App" /> -->
         <!-- </div> -->
       </v-col>

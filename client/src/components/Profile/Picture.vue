@@ -14,16 +14,19 @@
           show-size
           @change="previewPicture"
         ></v-file-input>
-        <template v-if="image != null">
-          <div class="text-center" style="overflow-x: hidden;">
-            <img :src="image.target.result" alt="Image de profile" style="max-height: 200px;" />
-          </div>
-          <v-btn color="primary" block @click="submit">Valider</v-btn>
-        </template>
+        <div v-if="image || user.avatar" class="text-center" style="overflow-x: hidden;">
+          <img
+            :src="image ? image.target.result : `/api/profile/avatar/${user.avatar}`"
+            alt="Image de profile"
+            style="max-height: 200px;"
+          />
+        </div>
+        <v-btn v-if="image" color="primary" block @click="submit">Valider</v-btn>
+        <v-btn v-else-if="user.avatar" color="error" block @click="remove">Supprimer</v-btn>
       </v-form>
     </v-card-text>
     <v-snackbar v-model="snackbar" top color="success">
-      Image de profile mit à jour
+      {{ snackbarText }}
       <v-btn dark text @click="snackbar = false">
         <v-icon>mdi-close</v-icon>
       </v-btn>
@@ -33,10 +36,12 @@
 
 <script>
 import axios from "axios";
+import { mapGetters, mapActions } from "vuex";
 
 export default {
   name: "Picture",
   data: () => ({
+    snackbarText: "",
     snackbar: false,
     valid: true,
     file: null,
@@ -48,7 +53,9 @@ export default {
         "La taille de l'avatar doit être inférieur à 2 MB!"
     }
   }),
+  computed: mapGetters(["user"]),
   methods: {
+    ...mapActions(["fetchUser"]),
     previewPicture(file) {
       if (file) {
         console.log("previewPicture -> file", file);
@@ -120,6 +127,15 @@ export default {
         this.image = null;
       }
     },
+    remove() {
+      axios
+        .delete(`/api/profile/upload/avatar/${this.user.avatar}`)
+        .then(() => {
+          this.snackbarText = "Image de profile supprimé";
+          this.snackbar = true;
+          this.fetchUser();
+        });
+    },
     submit() {
       if (this.$refs.form.validate()) {
         const formData = new FormData();
@@ -132,7 +148,10 @@ export default {
         };
 
         axios.post("/api/profile/upload/avatar", formData, config).then(() => {
+          this.snackbarText = "Image de profile mit à jour";
           this.snackbar = true;
+          this.image = null;
+          this.fetchUser();
         });
       }
     }
