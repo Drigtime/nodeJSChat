@@ -18,13 +18,13 @@ router.get("/:chat_id", auth, async (req, res) => {
                 path: "messages.message",
                 select: "text user chat",
                 populate: [
-                    { path: "user", select: "name avatar" },
+                    { path: "user", select: "name avatar gravatar" },
                     { path: "chat" }
                 ],
             })
             .populate({
                 path: "users.user",
-                select: "name avatar"
+                select: "name avatar gravatar"
             })
             .exec();
 

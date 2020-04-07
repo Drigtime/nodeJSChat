@@ -14,7 +14,7 @@ const Message = require("../../models/Message");
 router.get("/:message_id", auth, async (req, res) => {
     try {
         const message = await Message.findById(req.params.message_id)
-            .populate({ path: "user", select: "name email avatar" })
+            .populate({ path: "user", select: "name email avatar gravatar" })
             .exec();
         const chat = await Chat.findById(message.chat);
 

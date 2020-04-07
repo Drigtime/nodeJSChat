@@ -89,9 +89,9 @@
             <v-list v-else two-line subheader>
               <template v-for="(message, index) in messages">
                 <v-list-item :key="index" class="message">
-                  <v-list-item-avatar>
+                  <v-list-item-avatar> 
                     <v-img
-                      :src="message.user.avatar[0] == '/' ? message.user.avatar  : `/api/profile/avatar/${message.user.avatar}`"
+                      :src="message.user.avatar ? `/api/profile/avatar/${message.user.avatar}` : message.user.gravatar"
                     >
                       <template v-slot:placeholder>
                         <v-skeleton-loader type="avatar"></v-skeleton-loader>
@@ -246,7 +246,7 @@
                 >
                   <v-avatar size="40">
                     <v-img
-                      :src="userOfChat.avatar[0] == '/' ? userOfChat.avatar  : `/api/profile/avatar/${userOfChat.avatar}`"
+                      :src="userOfChat.avatar ? `/api/profile/avatar/${userOfChat.avatar}` : userOfChat.gravatar"
                     >
                       <template v-slot:placeholder>
                         <v-skeleton-loader type="avatar"></v-skeleton-loader>
