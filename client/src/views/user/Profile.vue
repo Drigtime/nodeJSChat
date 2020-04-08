@@ -1,7 +1,7 @@
 <template>
   <v-container fluid>
     <v-row align="center" justify="center">
-      <v-col cols="12" sm="10">
+      <v-col cols="12" sm="10" md="8" lg="6">
         <v-row>
           <v-col cols="12" md="6" class="py-0">
             <v-row>

@@ -78,6 +78,38 @@ router.post(
 );
 
 /**
+ * @route  DELETE api/upload/avatar
+ * @desc   delete avatar
+ * @access Public
+ */
+router.delete("/upload/avatar/:filename", auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        const gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+            bucketName: "uploads",
+        });
+
+        gfs.find({
+            filename: user.avatar,
+        }).toArray((err, files) => {
+            if (files && files.length > 0) {
+                gfs.delete(new mongoose.Types.ObjectId(files[0]._id));
+            }
+        });
+
+        await User.findByIdAndUpdate(req.user.id, {
+            $set: { avatar: "" },
+        });
+
+        return res.sendStatus(200).end();
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server error");
+    }
+});
+
+/**
  * @route  GET api/avatar
  * @desc   Get avatar
  * @access Public

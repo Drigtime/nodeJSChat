@@ -15,11 +15,15 @@
           @change="previewPicture"
         ></v-file-input>
         <div v-if="image || user.avatar" class="text-center" style="overflow-x: hidden;">
-          <img
+          <v-img
             :src="image ? image.target.result : `/api/profile/avatar/${user.avatar}`"
-            alt="Image de profile"
-            style="max-height: 200px;"
-          />
+            max-height="100"
+            contain
+          >
+            <template v-slot:placeholder>
+              <v-skeleton-loader type="image"></v-skeleton-loader>
+            </template>
+          </v-img>
         </div>
         <v-btn v-if="image" color="primary" block @click="submit">Valider</v-btn>
         <v-btn v-else-if="user.avatar" color="error" block @click="remove">Supprimer</v-btn>
@@ -67,8 +71,8 @@ export default {
           image.src = event.target.result;
 
           image.onload = img => {
-            let maxWidth = 50,
-              maxHeight = 50,
+            let maxWidth = 100,
+              maxHeight = 100,
               imageWidth = image.width,
               imageHeight = image.height;
 
