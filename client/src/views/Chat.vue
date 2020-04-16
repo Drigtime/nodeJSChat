@@ -13,7 +13,29 @@
             <v-list-item-content>
               <v-list-item-title>{{ chat.chat.name }}</v-list-item-title>
             </v-list-item-content>
-            <v-list-item-action>
+            <v-list-item-action v-if="chat.chat._id === globalChatId && chat.chat.owner === user._id">
+              <v-menu>
+                <template v-slot:activator="{ on }">
+                  <v-btn icon v-on="on">
+                    <v-icon>mdi-dots-horizontal</v-icon>
+                  </v-btn>
+                </template>
+                <v-list>
+                  <rename-chat
+                    :chat-id="chat.chat._id"
+                    :chat-name="chat.chat.name"
+                    :socket="socket"
+                  ></rename-chat>
+                  <v-list-item @click="deleteChat(chat.chat._id)">
+                    <v-list-item-avatar>
+                      <v-icon color="error">mdi-delete</v-icon>
+                    </v-list-item-avatar>
+                    <v-list-item-title class="red--text">Supprimer le chat</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </v-list-item-action>
+            <v-list-item-action  v-else-if="chat.chat._id !== globalChatId">
               <v-menu>
                 <template v-slot:activator="{ on }">
                   <v-btn icon v-on="on">
@@ -102,6 +124,7 @@
                   <v-list-item-content>
                     <v-list-item-title v-html="message.user.name"></v-list-item-title>
                     <v-list-item-subtitle v-if="isBeingEdited != message._id">
+                      <v-img v-if="message.attach" :src="message.attach" max-height="300" contain></v-img>
                       <div class="text--primary message-wrap">{{ message.text }}</div>
                     </v-list-item-subtitle>
                     <v-text-field v-else dense v-model="editedMessage">
@@ -162,6 +185,25 @@
               </template>
             </v-list>
           </div>
+          <v-card v-if="newMessageAttach">
+            <v-container fluid>
+              <v-row justify="center">
+                <v-col cols="4" style="text-align: end">
+                  <v-btn
+                    color="error"
+                    fab
+                    x-small
+                    dark
+                    style="position: absolute; z-index: 1; margin-left: -16px; margin-top: -16px;"
+                    @click="newMessageAttach = null"
+                  >
+                    <v-icon>mdi-close</v-icon>
+                  </v-btn>
+                  <v-img :src="newMessageAttach"></v-img>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card>
           <v-textarea
             auto-grow
             rows="1"
@@ -170,6 +212,7 @@
             hide-details
             solo
             @keydown="handleMessageTextField"
+            @paste="handlePasteTextField"
           >
             <template v-slot:append>
               <v-menu offset-y top left :close-on-content-click="false">
@@ -270,7 +313,7 @@
                       <v-list-item-avatar>
                         <v-icon>mdi-send</v-icon>
                       </v-list-item-avatar>
-                      <v-list-item-title>Envoyer un message privée</v-list-item-title>
+                      <v-list-item-title>Envoyer un message</v-list-item-title>
                     </v-list-item>
                     <v-list-item
                       v-if="chat.owner == user._id"
@@ -279,7 +322,7 @@
                       <v-list-item-avatar>
                         <v-icon color="error">mdi-account-off</v-icon>
                       </v-list-item-avatar>
-                      <v-list-item-title class="red--text">Bannir l'utilisateur</v-list-item-title>
+                      <v-list-item-title class="red--text">Exclure</v-list-item-title>
                     </v-list-item>
                   </v-list>
                 </v-menu>
@@ -325,6 +368,7 @@ export default {
       userDrawer: true,
       globalChatId: "5e7a67e7e0470653ac237e87",
       newMessage: "",
+      newMessageAttach: null,
       editedMessage: null,
       isBeingEdited: "",
       error: false,
@@ -422,6 +466,29 @@ export default {
   },
   methods: {
     ...mapActions(["fetchUser"]),
+    handlePasteTextField(event) {
+      // use event.originalEvent.clipboard for newer chrome versions
+      const items = (event.clipboardData || event.originalEvent.clipboardData)
+        .items;
+      console.log(JSON.stringify(items)); // will give you the mime types
+      // find pasted image among pasted items
+      let blob = null;
+      for (const item of items) {
+        if (item.type.indexOf("image") === 0) {
+          blob = item.getAsFile();
+        }
+      }
+      // load image if there is a pasted image
+      if (blob !== null) {
+        const reader = new FileReader();
+        reader.onload = event => {
+          console.log(event.target.result); // data url!
+          this.newMessageAttach = event.target.result;
+          // document.getElementById("pastedImage").src = event.target.result;
+        };
+        reader.readAsDataURL(blob);
+      }
+    },
     handleMessageTextField(event) {
       if (event.keyCode == 13 && !event.shiftKey) {
         event.preventDefault();
@@ -435,11 +502,13 @@ export default {
     },
     send() {
       const msg = this.newMessage.match(/^[\s\S]*?([\w\d\S][\s\S]*)/)[1];
+      const msgAttach = this.newMessageAttach;
       this.newMessage = "";
+      this.newMessageAttach = null;
       axios
         .post(
           `/api/message/${this.chat._id}`,
-          { text: msg },
+          { text: msg, attach: msgAttach },
           {
             contentType: "application/json"
           }
@@ -580,7 +649,7 @@ export default {
 }
 
 .v-textarea.v-text-field--solo .v-input__append-inner {
-  margin-top: 8px!important;
+  margin-top: 8px !important;
 }
 
 /* .v-list--two-line .v-list-item .v-list-item__subtitle,

@@ -26,7 +26,7 @@
                 <v-icon>mdi-face</v-icon>
               </v-list-item-icon>
               <v-list-item-content>
-                <v-list-item-title>Mon profile</v-list-item-title>
+                <v-list-item-title>Mon profil</v-list-item-title>
               </v-list-item-content>
             </v-list-item>
             <v-list-item @click="logout">

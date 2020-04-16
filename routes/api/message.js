@@ -18,12 +18,12 @@ router.get("/:message_id", auth, async (req, res) => {
             .exec();
         const chat = await Chat.findById(message.chat);
 
-        if (chat.users.map(user => user.user).includes(req.user.id)) {
+        if (chat.users.map((user) => user.user).includes(req.user.id)) {
             res.json(message);
         }
 
         res.status(405).json({
-            msg: "User not allow to get this message"
+            msg: "User not allow to get this message",
         });
     } catch (err) {
         console.error(err.message);
@@ -38,34 +38,29 @@ router.get("/:message_id", auth, async (req, res) => {
  */
 router.post(
     "/:chat_id",
-    [
-        auth,
-        [
-            check("text", "Empty message a not authorized")
-                .not()
-                .isEmpty()
-        ]
-    ],
+    [auth, [check("text", "Empty message a not authorized").not().isEmpty()]],
     async (req, res) => {
         const errors = validationResult(req);
 
         if (!errors.isEmpty()) {
             return res.status(400).json({
-                errors: errors.array()
+                errors: errors.array(),
             });
         }
 
-        const { text } = req.body;
+        const { text, attach } = req.body;
 
         try {
             const chat = await Chat.findById(req.params.chat_id);
 
-            if (chat.users.map(user => user.user).includes(req.user.id)) {
+            if (chat.users.map((user) => user.user).includes(req.user.id)) {
                 let message = new Message({
                     chat,
                     user: req.user.id,
-                    text
+                    text,
                 });
+
+                if (attach) message.attach = attach;
 
                 await message.save();
 
@@ -83,7 +78,7 @@ router.post(
             }
 
             res.status(405).json({
-                msg: "User not allow to send a message in this chat"
+                msg: "User not allow to send a message in this chat",
             });
         } catch (err) {
             console.error(err.message);
@@ -99,20 +94,13 @@ router.post(
  */
 router.put(
     "/:message_id",
-    [
-        auth,
-        [
-            check("text", "Empty message a not authorized")
-                .not()
-                .isEmpty()
-        ]
-    ],
+    [auth, [check("text", "Empty message a not authorized").not().isEmpty()]],
     async (req, res) => {
         const errors = validationResult(req);
 
         if (!errors.isEmpty()) {
             return res.status(400).json({
-                errors: errors.array()
+                errors: errors.array(),
             });
         }
 
@@ -125,7 +113,7 @@ router.put(
                 message = await Message.findByIdAndUpdate(
                     message.id,
                     {
-                        $set: { text, edited: true }
+                        $set: { text, edited: true },
                     },
                     { new: true }
                 );
@@ -134,7 +122,7 @@ router.put(
             }
 
             res.status(405).json({
-                msg: "Permission denied user not allowed to update the message"
+                msg: "Permission denied user not allowed to update the message",
             });
         } catch (err) {
             console.error(err.message);
@@ -154,7 +142,7 @@ router.delete("/:message_id", auth, async (req, res) => {
 
         if (message.user == req.user.id) {
             await Chat.findByIdAndUpdate(message.chat, {
-                $pull: { messages: { message: message.id } }
+                $pull: { messages: { message: message.id } },
             });
             await Message.findByIdAndRemove(message.id);
 
@@ -162,7 +150,7 @@ router.delete("/:message_id", auth, async (req, res) => {
         }
 
         res.status(405).json({
-            msg: "User not allow to delete this message"
+            msg: "User not allow to delete this message",
         });
     } catch (err) {
         console.error(err.message);

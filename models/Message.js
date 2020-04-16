@@ -12,6 +12,10 @@ const MessageSchema = new mongoose.Schema({
     text: {
         type: String
     },
+    attach: {
+        type: String,
+        default: null
+    },
     likes: [
         {
             user: {
