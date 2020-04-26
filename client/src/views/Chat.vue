@@ -13,7 +13,9 @@
             <v-list-item-content>
               <v-list-item-title>{{ chat.chat.name }}</v-list-item-title>
             </v-list-item-content>
-            <v-list-item-action v-if="chat.chat._id === globalChatId && chat.chat.owner === user._id">
+            <v-list-item-action
+              v-if="chat.chat._id === globalChatId && chat.chat.owner === user._id"
+            >
               <v-menu>
                 <template v-slot:activator="{ on }">
                   <v-btn icon v-on="on">
@@ -35,7 +37,7 @@
                 </v-list>
               </v-menu>
             </v-list-item-action>
-            <v-list-item-action  v-else-if="chat.chat._id !== globalChatId">
+            <v-list-item-action v-else-if="chat.chat._id !== globalChatId">
               <v-menu>
                 <template v-slot:activator="{ on }">
                   <v-btn icon v-on="on">
@@ -82,7 +84,7 @@
     <v-card style="width: calc(100% - 200px);">
       <v-toolbar color="grey darken-4" dark dense>
         <v-toolbar-title>
-          <v-skeleton-loader v-if="loadingChat" width="300" type="heading"></v-skeleton-loader>
+          <v-skeleton-loader v-if="loadingChat || chat === null" width="300" type="heading"></v-skeleton-loader>
           <span v-else>{{ chat.name }}</span>
         </v-toolbar-title>
 
@@ -330,7 +332,7 @@
             </v-list-item>
           </v-list>
 
-          <template v-if="chat.owner == user._id" v-slot:append>
+          <template v-if="chat && chat.owner == user._id" v-slot:append>
             <div class="pa-2">
               <invite-user :users="allUsers" :chat="chat" :socket="socket"></invite-user>
             </div>
@@ -383,16 +385,18 @@ export default {
   computed: {
     ...mapGetters(["user"]),
     usersList() {
-      return this.chat.users.map(chatUser => {
-        const userIndex = this.connectedUsers.findIndex(
-          user => user._id === chatUser.user._id
-        );
-        if (userIndex !== -1) {
-          return { ...chatUser.user, connected: true };
-        } else {
-          return { ...chatUser.user, connected: false };
-        }
-      });
+      if (this.chat) {
+        return this.chat.users.map(chatUser => {
+          const userIndex = this.connectedUsers.findIndex(
+            user => user._id === chatUser.user._id
+          );
+          if (userIndex !== -1) {
+            return { ...chatUser.user, connected: true };
+          } else {
+            return { ...chatUser.user, connected: false };
+          }
+        });
+      } else return {};
     },
     socket: () => socket
   },
